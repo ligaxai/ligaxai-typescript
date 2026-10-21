@@ -2,7 +2,7 @@
 
 ## Reporting a vulnerability
 
-Email **security@example.com** with a description and reproduction steps (replace before the first
+Email **security@ligaments.ai** with a description and reproduction steps (replace before the first
 public release). Do not open a public issue for security reports. We aim to acknowledge within 2
 business days.
 

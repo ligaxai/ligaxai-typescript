@@ -72,4 +72,4 @@ config (org policy decides).
 - Set `SPEC_VERSION` once the spec repo publishes `spec-v0.1.0`; run
   `pnpm sync-spec && pnpm gen:types`; replace the `health` stub with the real resources.
 - First manual publish of each package, then enable trusted publishing on npm.
-- Replace `security@example.com` in SECURITY.md.
+- Replace `security@ligaments.ai` in SECURITY.md.

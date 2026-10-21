@@ -1,0 +1,9 @@
+{
+  "lastEventId": "4",
+  "events": [
+    { "type": "run.started", "run_id": "run_1" },
+    { "type": "text.delta", "delta": "Hel" },
+    { "type": "text.delta", "delta": "lo" },
+    { "type": "run.completed", "run_id": "run_1" }
+  ]
+}

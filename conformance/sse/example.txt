@@ -1,0 +1,20 @@
+id: 1
+event: run.started
+data: {"type":"run.started","run_id":"run_1"}
+
+: keep-alive
+
+id: 2
+event: text.delta
+data: {"type":"text.delta","delta":"Hel"}
+
+id: 3
+event: text.delta
+data: {"type":"text.delta","delta":"lo"}
+
+id: 4
+event: run.completed
+data: {"type":"run.completed","run_id":"run_1"}
+
+data: [DONE]
+

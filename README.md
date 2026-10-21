@@ -94,7 +94,7 @@ subclasses by status (`AuthenticationError`, `RateLimitError`, ...) with `status
 
 ```sh
 pnpm install
-pnpm check          # typecheck + prettier + vitest + build + publint — the CI gate
+pnpm check          # build + typecheck + prettier + vitest + publint — the CI gate
 pnpm test           # vitest across all packages
 pnpm changeset      # describe a user-facing change before opening a PR
 ```

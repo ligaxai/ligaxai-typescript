@@ -10,7 +10,7 @@ the project stands. This file holds the invariants.
 
 ## Commands
 
-- `pnpm check` — typecheck + prettier + vitest + build + publint. **Must pass before "done".**
+- `pnpm check` — build + typecheck + prettier + vitest + publint. **Must pass before "done".**
 - `pnpm test` / `pnpm --filter @ligaxai/sdk test` — vitest (root runs all projects).
 - `pnpm build` — tsdown for the three packages (the example app is deliberately not built).
 - `pnpm sync-spec` then `pnpm gen:types` — refresh `openapi/openapi.json` and the generated types

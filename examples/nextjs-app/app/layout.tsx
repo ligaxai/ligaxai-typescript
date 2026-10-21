@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-export const metadata = { title: '__PROJECT_TITLE__ · Next.js example' };
+export const metadata = { title: 'LigaX AI · Next.js example' };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (

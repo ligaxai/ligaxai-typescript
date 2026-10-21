@@ -157,7 +157,7 @@ export class BaseClient {
   protected buildHeaders(options: RequestOptions, idempotencyKey: string | undefined): Headers {
     const headers = new Headers({
       Accept: options.stream ? 'text/event-stream' : 'application/json',
-      'User-Agent': `base-project-slug-typescript/${VERSION}`,
+      'User-Agent': `ligaxai-typescript-typescript/${VERSION}`,
       ...this.config.defaultHeaders,
     });
     if (this.config.apiKey) headers.set('Authorization', `Bearer ${this.config.apiKey}`);

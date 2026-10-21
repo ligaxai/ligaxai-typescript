@@ -2,7 +2,7 @@
   "name": "nextjs-app-example",
   "version": "0.0.0",
   "private": true,
-  "description": "Minimal Next.js App Router app using @base-project-scope/sdk/next",
+  "description": "Minimal Next.js App Router app using @ligaxai/sdk/next",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -10,7 +10,7 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@base-project-scope/sdk": "workspace:*",
+    "@ligaxai/sdk": "workspace:*",
     "next": "16.4.2",
     "react": "19.3.1",
     "react-dom": "19.3.1"

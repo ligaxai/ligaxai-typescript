@@ -1,17 +1,17 @@
 {
-  "name": "@base-project-scope/react",
+  "name": "@ligaxai/react",
   "version": "0.0.0",
-  "description": "React bindings for the __PROJECT_TITLE__ SDK",
+  "description": "React bindings for the LigaX AI SDK",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/__GITHUB_ORG__/base-project-slug.git",
+    "url": "git+https://github.com/ligaxai/ligaxai-typescript.git",
     "directory": "packages/react"
   },
-  "homepage": "https://github.com/__GITHUB_ORG__/base-project-slug#readme",
-  "bugs": "https://github.com/__GITHUB_ORG__/base-project-slug/issues",
+  "homepage": "https://github.com/ligaxai/ligaxai-typescript#readme",
+  "bugs": "https://github.com/ligaxai/ligaxai-typescript/issues",
   "keywords": [
-    "base-project-slug",
+    "ligaxai-typescript",
     "react",
     "chat",
     "hooks"
@@ -48,7 +48,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@base-project-scope/sdk": "workspace:*"
+    "@ligaxai/sdk": "workspace:*"
   },
   "peerDependencies": {
     "@ai-sdk/react": ">=3",

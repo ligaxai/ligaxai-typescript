@@ -6,11 +6,11 @@
 
 ## What this project is
 
-**`base-project-slug`** publishes the official TypeScript packages for the **PROJECT_TITLE** API:
-`@base-project-scope/sdk` (the client), `@base-project-scope/react` (hooks for Vercel AI SDK apps)
-and `@base-project-scope/widget` (a script-tag chat panel). It is hand-written in the openai-node
-shape — only the request/response types are generated from the API's OpenAPI spec — and shares
-language-neutral conformance fixtures with the Python SDK so both behave identically.
+**`ligaxai-typescript`** publishes the official TypeScript packages for the **PROJECT_TITLE** API:
+`@ligaxai/sdk` (the client), `@ligaxai/react` (hooks for Vercel AI SDK apps) and `@ligaxai/widget`
+(a script-tag chat panel). It is hand-written in the openai-node shape — only the request/response
+types are generated from the API's OpenAPI spec — and shares language-neutral conformance fixtures
+with the Python SDK so both behave identically.
 
 On the template branch the repo is also the **base project** for other SDKs: every product-specific
 string is a token listed in [`TEMPLATE-TOKENS.md`](./TEMPLATE-TOKENS.md) and rewritten by
@@ -19,7 +19,7 @@ string is a token listed in [`TEMPLATE-TOKENS.md`](./TEMPLATE-TOKENS.md) and rew
 ## What works today
 
 1. **Client** —
-   `new BaseProject({ apiKey, baseURL, timeout, maxRetries, defaultHeaders, fetch, logLevel, logger, dangerouslyAllowBrowser })`,
+   `new LigaX({ apiKey, baseURL, timeout, maxRetries, defaultHeaders, fetch, logLevel, logger, dangerouslyAllowBrowser })`,
    env fallbacks, browser guard, redacting logger.
 2. **Request pipeline** — Bearer auth, User-Agent with the build-time version, `X-Request-Id`
    capture, automatic `Idempotency-Key` on POST reused across retries, the full retry policy
@@ -28,15 +28,14 @@ string is a token listed in [`TEMPLATE-TOKENS.md`](./TEMPLATE-TOKENS.md) and rew
 3. **Streaming** — `Stream<T>` over `eventsource-parser/stream`; `[DONE]`, `lastEventId`, `tee()`,
    abort on early exit.
 4. **Pagination** — `Page<T>` with `hasNextPage()` / `getNextPage()` and item-level `for await`.
-5. **Errors** — `BaseProjectError` → `APIConnectionError` / `APITimeoutError` / `APIError`
-   subclasses by status, with `status`, `request_id`, `code`, `type`, `param`.
+5. **Errors** — `LigaXError` → `APIConnectionError` / `APITimeoutError` / `APIError` subclasses by
+   status, with `status`, `request_id`, `code`, `type`, `param`.
 6. **Subpaths** — `/errors`, `/webhooks` (Standard Webhooks with WebCrypto), `/next`
    (`createRouteHandler` → `{ GET, POST }` with stream passthrough), `/ai-sdk`
    (`createChatTransport` → Vercel AI SDK `ChatTransport`).
-7. **React** — `BaseProjectProvider`, `useBaseProject`, `useBaseProjectTransport`,
-   `useBaseProjectChat({ useChat, ... })`.
+7. **React** — `LigaXProvider`, `useLigaX`, `useLigaXTransport`, `useLigaXChat({ useChat, ... })`.
 8. **Widget** — `init()` / `autoInit()`; ESM/CJS library plus IIFE `dist/widget.global.js` exposing
-   `window.BaseProjectWidget`.
+   `window.LigaXWidget`.
 9. **Tests** — 71 vitest cases across the three packages, all through an injected `fetch`;
    conformance runner over `conformance/`.
 10. **Build & release** — tsdown ESM + CJS + d.ts, publint strict, Changesets, CI matrix (Node 22/24
@@ -46,12 +45,12 @@ string is a token listed in [`TEMPLATE-TOKENS.md`](./TEMPLATE-TOKENS.md) and rew
 ## Repo layout
 
 ```
-base-project-slug/
+ligaxai-typescript/
 ├── .github/workflows/     ci.yml · release.yml
 ├── .changeset/            config.json · README.md
 ├── conformance/           cases/*.json · sse/*.txt (+ .expected.json) · README.md
 ├── docs/                  ai-stack · SUMMARY · STATUS · DECISIONS · TEMPLATE-TOKENS · .last-tracked-commit
-├── examples/nextjs-app/   App Router example using @base-project-scope/sdk/next
+├── examples/nextjs-app/   App Router example using @ligaxai/sdk/next
 ├── openapi/               openapi.json lands here via sync-spec (not committed until SPEC_VERSION is set)
 ├── packages/
 │   ├── sdk/               src/{client,index,errors,webhooks,next,ai-sdk,version}.ts, src/core/*, src/resources/*, src/generated/*

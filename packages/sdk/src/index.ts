@@ -1,11 +1,6 @@
-export {
-  BaseProject,
-  DEFAULT_BASE_URL,
-  DEFAULT_MAX_RETRIES,
-  DEFAULT_TIMEOUT_MS,
-} from './client.js';
+export { LigaX, DEFAULT_BASE_URL, DEFAULT_MAX_RETRIES, DEFAULT_TIMEOUT_MS } from './client.js';
 export type { ClientOptions } from './client.js';
-export { BaseProject as default } from './client.js';
+export { LigaX as default } from './client.js';
 
 export { APIPromise, BaseClient } from './core/base-client.js';
 export type { Fetch, HTTPMethod, RequestOptions } from './core/base-client.js';

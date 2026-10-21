@@ -1,17 +1,17 @@
 {
-  "name": "@base-project-scope/sdk",
+  "name": "@ligaxai/sdk",
   "version": "0.0.0",
-  "description": "Official __PROJECT_TITLE__ TypeScript SDK",
+  "description": "Official LigaX AI TypeScript SDK",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/__GITHUB_ORG__/base-project-slug.git",
+    "url": "git+https://github.com/ligaxai/ligaxai-typescript.git",
     "directory": "packages/sdk"
   },
-  "homepage": "https://github.com/__GITHUB_ORG__/base-project-slug#readme",
-  "bugs": "https://github.com/__GITHUB_ORG__/base-project-slug/issues",
+  "homepage": "https://github.com/ligaxai/ligaxai-typescript#readme",
+  "bugs": "https://github.com/ligaxai/ligaxai-typescript/issues",
   "keywords": [
-    "base-project-slug",
+    "ligaxai-typescript",
     "sdk",
     "api",
     "client"

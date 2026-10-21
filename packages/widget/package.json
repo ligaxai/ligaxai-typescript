@@ -1,17 +1,17 @@
 {
-  "name": "@base-project-scope/widget",
+  "name": "@ligaxai/widget",
   "version": "0.0.0",
-  "description": "Drop-in chat widget for __PROJECT_TITLE__ — one script tag, no framework",
+  "description": "Drop-in chat widget for LigaX AI — one script tag, no framework",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/__GITHUB_ORG__/base-project-slug.git",
+    "url": "git+https://github.com/ligaxai/ligaxai-typescript.git",
     "directory": "packages/widget"
   },
-  "homepage": "https://github.com/__GITHUB_ORG__/base-project-slug#readme",
-  "bugs": "https://github.com/__GITHUB_ORG__/base-project-slug/issues",
+  "homepage": "https://github.com/ligaxai/ligaxai-typescript#readme",
+  "bugs": "https://github.com/ligaxai/ligaxai-typescript/issues",
   "keywords": [
-    "base-project-slug",
+    "ligaxai-typescript",
     "widget",
     "chat",
     "embed"
@@ -51,7 +51,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@base-project-scope/sdk": "workspace:*"
+    "@ligaxai/sdk": "workspace:*"
   },
   "devDependencies": {
     "jsdom": "29.1.1"

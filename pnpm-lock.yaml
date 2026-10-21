@@ -41,7 +41,7 @@ importers:
 
   examples/nextjs-app:
     dependencies:
-      '@base-project-scope/sdk':
+      '@ligaxai/sdk':
         specifier: workspace:*
         version: link:../../packages/sdk
       next:
@@ -63,7 +63,7 @@ importers:
 
   packages/react:
     dependencies:
-      '@base-project-scope/sdk':
+      '@ligaxai/sdk':
         specifier: workspace:*
         version: link:../sdk
     devDependencies:
@@ -113,7 +113,7 @@ importers:
 
   packages/widget:
     dependencies:
-      '@base-project-scope/sdk':
+      '@ligaxai/sdk':
         specifier: workspace:*
         version: link:../sdk
     devDependencies:

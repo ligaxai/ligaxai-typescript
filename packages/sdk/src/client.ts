@@ -3,14 +3,14 @@ import { BrowserEnvironmentError } from './core/errors.js';
 import { createLogger, type Logger, type LogLevel, parseLogLevel } from './core/logging.js';
 import { Health } from './resources/health.js';
 
-export const DEFAULT_BASE_URL = '__DEFAULT_BASE_URL__';
+export const DEFAULT_BASE_URL = 'https://api.ligax.ai/api/public/v1';
 export const DEFAULT_TIMEOUT_MS = 600_000;
 export const DEFAULT_MAX_RETRIES = 2;
 
 export interface ClientOptions {
-  /** Defaults to `process.env.BASE_PROJECT_API_KEY`. */
+  /** Defaults to `process.env.LIGAX_API_KEY`. */
   apiKey?: string | undefined;
-  /** Defaults to `process.env.BASE_PROJECT_BASE_URL`, then the production API. */
+  /** Defaults to `process.env.LIGAX_BASE_URL`, then the production API. */
   baseURL?: string | undefined;
   /** Per-request timeout in ms. Default 10 minutes, matching long-running streamed calls. */
   timeout?: number | undefined;
@@ -20,7 +20,7 @@ export interface ClientOptions {
   defaultHeaders?: Record<string, string> | undefined;
   /** Inject a `fetch` (tests, proxies, custom agents). Defaults to the global. */
   fetch?: Fetch | undefined;
-  /** `off | error | warn | info | debug`. Defaults to `BASE_PROJECT_LOG`, then `warn`. */
+  /** `off | error | warn | info | debug`. Defaults to `LIGAX_LOG`, then `warn`. */
   logLevel?: LogLevel | undefined;
   /** Route SDK logs into your own logger; the default is `console`. */
   logger?: Logger | undefined;
@@ -47,18 +47,18 @@ export function isBrowserLike(): boolean {
 }
 
 /**
- * The __PROJECT_TITLE__ API client. One instance per API key; it is safe to share across
+ * The LigaX AI API client. One instance per API key; it is safe to share across
  * requests. Resources hang off it as properties (`client.health.get()`).
  */
-export class BaseProject extends BaseClient {
+export class LigaX extends BaseClient {
   readonly apiKey: string | undefined;
   readonly baseURL: string;
 
   readonly health: Health;
 
   constructor(options: ClientOptions = {}) {
-    const apiKey = options.apiKey ?? readEnv('BASE_PROJECT_API_KEY');
-    const baseURL = options.baseURL ?? readEnv('BASE_PROJECT_BASE_URL') ?? DEFAULT_BASE_URL;
+    const apiKey = options.apiKey ?? readEnv('LIGAX_API_KEY');
+    const baseURL = options.baseURL ?? readEnv('LIGAX_BASE_URL') ?? DEFAULT_BASE_URL;
 
     if (isBrowserLike() && options.dangerouslyAllowBrowser !== true) {
       throw new BrowserEnvironmentError(
@@ -68,8 +68,7 @@ export class BaseProject extends BaseClient {
       );
     }
 
-    const level =
-      options.logLevel ?? parseLogLevel(readEnv('BASE_PROJECT_LOG'), 'BASE_PROJECT_LOG') ?? 'warn';
+    const level = options.logLevel ?? parseLogLevel(readEnv('LIGAX_LOG'), 'LIGAX_LOG') ?? 'warn';
 
     super({
       baseURL,

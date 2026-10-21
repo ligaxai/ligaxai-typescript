@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { BaseProject } from '../src/index.js';
+import { LigaX } from '../src/index.js';
 import { Page } from '../src/core/pagination.js';
 import { json, scriptedFetch } from './helpers.js';
 
@@ -11,7 +11,7 @@ describe('Page', () => {
       json({ data: [{ id: 'c' }], next_page: 'cur_3' }),
       json({ data: [{ id: 'd' }], next_page: null }),
     ]);
-    const client = new BaseProject({ apiKey: 'k', baseURL: 'https://api.example', fetch });
+    const client = new LigaX({ apiKey: 'k', baseURL: 'https://api.example', fetch });
     const page = await client.getPage<{ id: string }>('/runs', { query: { limit: 2 } });
     expect(page).toBeInstanceOf(Page);
     expect(page.data.map((r) => r.id)).toEqual(['a', 'b']);

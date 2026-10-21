@@ -1,17 +1,14 @@
 import { useMemo } from 'react';
 import type { ChatInit, ChatTransport, UIMessage } from 'ai';
 import type { useChat as UseChat } from '@ai-sdk/react';
-import { createChatTransport, type ChatTransportOptions } from '@base-project-scope/sdk/ai-sdk';
+import { createChatTransport, type ChatTransportOptions } from '@ligaxai/sdk/ai-sdk';
 
-import { useBaseProject } from './provider.js';
+import { useLigaX } from './provider.js';
 
 export type UseChatOptions<M extends UIMessage> = Parameters<typeof UseChat<M>>[0];
 export type UseChatHelpers<M extends UIMessage> = ReturnType<typeof UseChat<M>>;
 
-export interface UseBaseProjectTransportOptions extends Omit<
-  ChatTransportOptions,
-  'headers' | 'body'
-> {
+export interface UseLigaXTransportOptions extends Omit<ChatTransportOptions, 'headers' | 'body'> {
   /** Profile for this chat; falls back to the provider's. Sent as `profile` in the body. */
   profile?: string | undefined;
   headers?: ChatTransportOptions['headers'];
@@ -19,14 +16,14 @@ export interface UseBaseProjectTransportOptions extends Omit<
 }
 
 /**
- * A memoised `ChatTransport` wired to the nearest `BaseProjectProvider`: posts to its `api`,
+ * A memoised `ChatTransport` wired to the nearest `LigaXProvider`: posts to its `api`,
  * attaches a client token from `getClientToken` when one is configured, and sends the profile.
- * Use it directly with `new Chat({ transport })` or hand it to `useBaseProjectChat`.
+ * Use it directly with `new Chat({ transport })` or hand it to `useLigaXChat`.
  */
-export function useBaseProjectTransport<M extends UIMessage = UIMessage>(
-  options: UseBaseProjectTransportOptions = {},
+export function useLigaXTransport<M extends UIMessage = UIMessage>(
+  options: UseLigaXTransportOptions = {},
 ): ChatTransport<M> {
-  const ctx = useBaseProject();
+  const ctx = useLigaX();
   const { api, profile, headers, body, fetch, credentials, reconnectApi } = options;
   const getClientToken = ctx.getClientToken;
   const resolvedProfile = profile ?? ctx.profile;
@@ -63,8 +60,8 @@ export function useBaseProjectTransport<M extends UIMessage = UIMessage>(
 export type UseChatPassThrough<M extends UIMessage> = Omit<ChatInit<M>, 'transport'> &
   Omit<UseChatOptions<M>, keyof ChatInit<M> | 'chat'>;
 
-export interface UseBaseProjectChatOptions<M extends UIMessage>
-  extends UseBaseProjectTransportOptions, UseChatPassThrough<M> {
+export interface UseLigaXChatOptions<M extends UIMessage>
+  extends UseLigaXTransportOptions, UseChatPassThrough<M> {
   /**
    * `useChat` from `@ai-sdk/react`, passed in rather than imported here: `@ai-sdk/react` stays
    * an optional peer (nothing to install if you only want the transport), and your app controls
@@ -79,15 +76,15 @@ export interface UseBaseProjectChatOptions<M extends UIMessage>
  *
  * ```tsx
  * import { useChat } from '@ai-sdk/react';
- * const { messages, sendMessage } = useBaseProjectChat({ useChat, profile: 'support' });
+ * const { messages, sendMessage } = useLigaXChat({ useChat, profile: 'support' });
  * ```
  */
-export function useBaseProjectChat<M extends UIMessage = UIMessage>(
-  options: UseBaseProjectChatOptions<M>,
+export function useLigaXChat<M extends UIMessage = UIMessage>(
+  options: UseLigaXChatOptions<M>,
 ): UseChatHelpers<M> {
   const { useChat, api, profile, headers, body, fetch, credentials, reconnectApi, ...chatOptions } =
     options;
-  const transport = useBaseProjectTransport<M>({
+  const transport = useLigaXTransport<M>({
     api,
     profile,
     headers,

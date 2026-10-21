@@ -18,15 +18,15 @@ Authoritative stack facts for this repository. When another doc disagrees, this 
 
 ## Packages
 
-| Package                      | Platform | Runtime deps                                      | Optional peers (type-only)                |
-| ---------------------------- | -------- | ------------------------------------------------- | ----------------------------------------- |
-| `@base-project-scope/sdk`    | neutral  | `eventsource-parser`                              | `ai`, `next`                              |
-| `@base-project-scope/react`  | browser  | `@base-project-scope/sdk`                         | `react` (required), `ai`, `@ai-sdk/react` |
-| `@base-project-scope/widget` | browser  | `@base-project-scope/sdk` (library) / none (IIFE) | —                                         |
+| Package           | Platform | Runtime deps                           | Optional peers (type-only)                |
+| ----------------- | -------- | -------------------------------------- | ----------------------------------------- |
+| `@ligaxai/sdk`    | neutral  | `eventsource-parser`                   | `ai`, `next`                              |
+| `@ligaxai/react`  | browser  | `@ligaxai/sdk`                         | `react` (required), `ai`, `@ai-sdk/react` |
+| `@ligaxai/widget` | browser  | `@ligaxai/sdk` (library) / none (IIFE) | —                                         |
 
 ## Wire contracts the SDK encodes
 
-- **Auth** `Authorization: Bearer <key>`; **UA** `base-project-slug-typescript/<version>`.
+- **Auth** `Authorization: Bearer <key>`; **UA** `ligaxai-typescript-typescript/<version>`.
 - **Request id** response header `x-request-id` → `error.request_id` / `result._request_id`.
 - **Errors** `{ error: { type, code, message, request_id, param } }`; class chosen by status.
 - **Idempotency** `Idempotency-Key` UUIDv4 on every POST, reused across retries.
@@ -47,6 +47,5 @@ and runs the same fixtures.
 
 ## Environment variables
 
-`BASE_PROJECT_API_KEY`, `BASE_PROJECT_BASE_URL`, `BASE_PROJECT_LOG` (`off|error|warn|info|debug`).
-`GITHUB_TOKEN` is optional for `sync-spec`. Nothing is read at import time; only the client
-constructor reads env.
+`LIGAX_API_KEY`, `LIGAX_BASE_URL`, `LIGAX_LOG` (`off|error|warn|info|debug`). `GITHUB_TOKEN` is
+optional for `sync-spec`. Nothing is read at import time; only the client constructor reads env.

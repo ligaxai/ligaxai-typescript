@@ -1,9 +1,9 @@
-export { BaseProjectProvider, useBaseProject } from './provider.js';
-export type { BaseProjectContextValue, BaseProjectProviderProps } from './provider.js';
-export { useBaseProjectChat, useBaseProjectTransport } from './chat.js';
+export { LigaXProvider, useLigaX } from './provider.js';
+export type { LigaXContextValue, LigaXProviderProps } from './provider.js';
+export { useLigaXChat, useLigaXTransport } from './chat.js';
 export type {
-  UseBaseProjectChatOptions,
-  UseBaseProjectTransportOptions,
+  UseLigaXChatOptions,
+  UseLigaXTransportOptions,
   UseChatHelpers,
   UseChatOptions,
   UseChatPassThrough,

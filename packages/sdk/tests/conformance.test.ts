@@ -2,7 +2,7 @@ import { readdirSync, readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-import { BaseProject } from '../src/index.js';
+import { LigaX } from '../src/index.js';
 import * as errors from '../src/errors.js';
 import { Stream } from '../src/core/streaming.js';
 import { chunkedBody, scriptedFetch } from './helpers.js';
@@ -40,7 +40,7 @@ function loadCases(): Case[] {
     .map((f) => JSON.parse(readFileSync(join(dir, f), 'utf8')) as Case);
 }
 
-function resolveCall(client: BaseProject, dotted: string): (...args: unknown[]) => unknown {
+function resolveCall(client: LigaX, dotted: string): (...args: unknown[]) => unknown {
   const parts = dotted.split('.');
   let target: unknown = client;
   let parent: unknown = client;
@@ -63,7 +63,7 @@ describe('conformance cases', () => {
           headers: c.response.headers ?? {},
         }),
     ]);
-    const client = new BaseProject({
+    const client = new LigaX({
       apiKey: 'sk_conformance',
       baseURL: BASE_URL,
       fetch,

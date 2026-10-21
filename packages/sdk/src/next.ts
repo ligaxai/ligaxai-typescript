@@ -1,9 +1,9 @@
-import { BaseProject, type ClientOptions } from './client.js';
+import { LigaX, type ClientOptions } from './client.js';
 import { APIError } from './core/errors.js';
 import type { HTTPMethod } from './core/base-client.js';
 
 /**
- * `@base-project-scope/sdk/next` — a Next.js App Router route handler that keeps the secret key
+ * `@ligaxai/sdk/next` — a Next.js App Router route handler that keeps the secret key
  * on the server and proxies the browser's request to the API. It only uses the Web `Request` and
  * `Response` types, so it also works in any framework that speaks those (Remix, SvelteKit, Hono,
  * Bun.serve); `next` is a type-only, optional peer.
@@ -27,7 +27,7 @@ export interface UpstreamCall {
 
 export interface RouteHandlerOptions extends Omit<ClientOptions, 'dangerouslyAllowBrowser'> {
   /** Reuse an existing client instead of constructing one from the options. */
-  client?: BaseProject | undefined;
+  client?: LigaX | undefined;
   /** Map an incoming JSON POST to the upstream call. Return `null` to answer 400. */
   resolve: (ctx: {
     request: Request;
@@ -48,7 +48,7 @@ export interface RouteHandlers {
 
 export function createRouteHandler(options: RouteHandlerOptions): RouteHandlers {
   const { client: given, resolve, resolveReconnect, ...clientOptions } = options;
-  const client = given ?? new BaseProject(clientOptions);
+  const client = given ?? new LigaX(clientOptions);
 
   async function proxy(call: UpstreamCall, request: Request): Promise<Response> {
     try {

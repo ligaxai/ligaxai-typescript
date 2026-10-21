@@ -2,19 +2,14 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, renderHook, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 
-import {
-  BaseProjectProvider,
-  useBaseProject,
-  useBaseProjectChat,
-  useBaseProjectTransport,
-} from '../src/index.js';
+import { LigaXProvider, useLigaX, useLigaXChat, useLigaXTransport } from '../src/index.js';
 
 function Probe() {
-  const ctx = useBaseProject();
+  const ctx = useLigaX();
   return <div data-testid="probe">{`${ctx.api}|${ctx.profile ?? '-'}`}</div>;
 }
 
-describe('BaseProjectProvider', () => {
+describe('LigaXProvider', () => {
   afterEach(cleanup);
 
   it('exposes api and profile to descendants, with defaults when absent', () => {
@@ -24,9 +19,9 @@ describe('BaseProjectProvider', () => {
 
   it('passes configured values through context', () => {
     render(
-      <BaseProjectProvider api="/api/chat" profile="support">
+      <LigaXProvider api="/api/chat" profile="support">
         <Probe />
-      </BaseProjectProvider>,
+      </LigaXProvider>,
     );
     expect(screen.getByTestId('probe').textContent).toBe('/api/chat|support');
   });
@@ -40,11 +35,11 @@ describe('BaseProjectProvider', () => {
     );
     const getClientToken = async () => 'ct_123';
     const wrapper = ({ children }: { children: ReactNode }) => (
-      <BaseProjectProvider api="/api/chat" profile="support" getClientToken={getClientToken}>
+      <LigaXProvider api="/api/chat" profile="support" getClientToken={getClientToken}>
         {children}
-      </BaseProjectProvider>
+      </LigaXProvider>
     );
-    const { result } = renderHook(() => useBaseProjectTransport({ fetch }), { wrapper });
+    const { result } = renderHook(() => useLigaXTransport({ fetch }), { wrapper });
     await result.current.sendMessages({
       trigger: 'submit-message',
       chatId: 'c1',
@@ -58,10 +53,10 @@ describe('BaseProjectProvider', () => {
     expect(JSON.parse(init.body as string)).toMatchObject({ id: 'c1', profile: 'support' });
   });
 
-  it('useBaseProjectChat hands the transport and the remaining options to the injected useChat', () => {
+  it('useLigaXChat hands the transport and the remaining options to the injected useChat', () => {
     const useChat = vi.fn((opts: { transport?: unknown; id?: string }) => ({ opts }));
     const { result } = renderHook(() =>
-      useBaseProjectChat({ useChat: useChat as never, id: 'chat_9', profile: 'sales' }),
+      useLigaXChat({ useChat: useChat as never, id: 'chat_9', profile: 'sales' }),
     );
     const passed = (result.current as unknown as { opts: { transport?: unknown; id?: string } })
       .opts;

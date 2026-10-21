@@ -1,27 +1,27 @@
 # **PROJECT_TITLE** TypeScript SDK
 
-[![CI](https://github.com/__GITHUB_ORG__/base-project-slug/actions/workflows/ci.yml/badge.svg)](https://github.com/__GITHUB_ORG__/base-project-slug/actions/workflows/ci.yml)
+[![CI](https://github.com/ligaxai/ligaxai-typescript/actions/workflows/ci.yml/badge.svg)](https://github.com/ligaxai/ligaxai-typescript/actions/workflows/ci.yml)
 
 Official TypeScript packages for the **PROJECT_TITLE** API. Node 22+, ESM and CJS, works in Bun,
 Deno, workerd and (with a client token) the browser.
 
-| Package                      | Use it for                                                                                                                     |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `@base-project-scope/sdk`    | The API client: typed resources, streaming, retries, pagination, errors. Subpaths: `/next`, `/ai-sdk`, `/webhooks`, `/errors`. |
-| `@base-project-scope/react`  | `BaseProjectProvider` + `useBaseProjectChat` for Vercel AI SDK `useChat` apps.                                                 |
-| `@base-project-scope/widget` | A chat panel for any site: one `<script>` tag, no framework.                                                                   |
+| Package           | Use it for                                                                                                                     |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `@ligaxai/sdk`    | The API client: typed resources, streaming, retries, pagination, errors. Subpaths: `/next`, `/ai-sdk`, `/webhooks`, `/errors`. |
+| `@ligaxai/react`  | `LigaXProvider` + `useLigaXChat` for Vercel AI SDK `useChat` apps.                                                             |
+| `@ligaxai/widget` | A chat panel for any site: one `<script>` tag, no framework.                                                                   |
 
 ## Quickstart
 
 ```sh
-pnpm add @base-project-scope/sdk
-export BASE_PROJECT_API_KEY=sk_...
+pnpm add @ligaxai/sdk
+export LIGAX_API_KEY=sk_...
 ```
 
 ```ts
-import { BaseProject } from '@base-project-scope/sdk';
+import { LigaX } from '@ligaxai/sdk';
 
-const client = new BaseProject(); // reads BASE_PROJECT_API_KEY
+const client = new LigaX(); // reads LIGAX_API_KEY
 const health = await client.health.get();
 console.log(health.status, health._request_id);
 ```
@@ -42,7 +42,7 @@ const { data, response, request_id } = await client.health.get().withResponse();
 
 ```ts
 // app/api/chat/route.ts
-import { createRouteHandler } from '@base-project-scope/sdk/next';
+import { createRouteHandler } from '@ligaxai/sdk/next';
 export const { GET, POST } = createRouteHandler({
   resolve: ({ body }) => ({ path: '/runs', body, stream: true }),
 });
@@ -51,14 +51,14 @@ export const { GET, POST } = createRouteHandler({
 ```tsx
 // a client component
 import { useChat } from '@ai-sdk/react';
-import { useBaseProjectChat } from '@base-project-scope/react';
-const { messages, sendMessage } = useBaseProjectChat({ useChat, profile: 'support' });
+import { useLigaXChat } from '@ligaxai/react';
+const { messages, sendMessage } = useLigaXChat({ useChat, profile: 'support' });
 ```
 
 ### Webhooks
 
 ```ts
-import { Webhook } from '@base-project-scope/sdk/webhooks';
+import { Webhook } from '@ligaxai/sdk/webhooks';
 const event = await new Webhook(process.env.WEBHOOK_SECRET!).verify(rawBody, request.headers);
 ```
 
@@ -66,7 +66,7 @@ const event = await new Webhook(process.env.WEBHOOK_SECRET!).verify(rawBody, req
 
 ```html
 <script
-  src="https://unpkg.com/@base-project-scope/widget/dist/widget.global.js"
+  src="https://unpkg.com/@ligaxai/widget/dist/widget.global.js"
   data-publishable-key="pk_..."
   data-profile="support"
   defer
@@ -77,18 +77,18 @@ const event = await new Webhook(process.env.WEBHOOK_SECRET!).verify(rawBody, req
 
 | Option / env                        | Default                                                                                           |
 | ----------------------------------- | ------------------------------------------------------------------------------------------------- |
-| `apiKey` / `BASE_PROJECT_API_KEY`   | —                                                                                                 |
-| `baseURL` / `BASE_PROJECT_BASE_URL` | `__DEFAULT_BASE_URL__`                                                                            |
+| `apiKey` / `LIGAX_API_KEY`          | —                                                                                                 |
+| `baseURL` / `LIGAX_BASE_URL`        | `https://api.ligax.ai/api/public/v1`                                                              |
 | `timeout`                           | `600000` ms                                                                                       |
 | `maxRetries`                        | `2` — connection errors, 408/409/429/5xx; never 402/403; honours `retry-after-ms` / `retry-after` |
 | `defaultHeaders`, `fetch`, `logger` | —                                                                                                 |
-| `logLevel` / `BASE_PROJECT_LOG`     | `warn` (`off error warn info debug`)                                                              |
+| `logLevel` / `LIGAX_LOG`            | `warn` (`off error warn info debug`)                                                              |
 | `dangerouslyAllowBrowser`           | `false`                                                                                           |
 
 Every POST carries an `Idempotency-Key` (UUID, reused across retries); pass `idempotencyKey` to
-control it. Errors extend `BaseProjectError`: `APIConnectionError`, `APITimeoutError`, and
-`APIError` subclasses by status (`AuthenticationError`, `RateLimitError`, ...) with `status`,
-`request_id`, `code`, `type`, `param`.
+control it. Errors extend `LigaXError`: `APIConnectionError`, `APITimeoutError`, and `APIError`
+subclasses by status (`AuthenticationError`, `RateLimitError`, ...) with `status`, `request_id`,
+`code`, `type`, `param`.
 
 ## Developing
 

@@ -1,7 +1,7 @@
-import { BaseProject, Stream } from '@base-project-scope/sdk';
+import { LigaX, Stream } from '@ligaxai/sdk';
 
 /**
- * `@base-project-scope/widget` — a dependency-free chat panel for sites that are not React apps.
+ * `@ligaxai/widget` — a dependency-free chat panel for sites that are not React apps.
  * One `<script>` tag (the IIFE build) or `init()` from the library build mounts it.
  *
  * It talks to the API with a **publishable key** (`pk_` — safe to embed; the API scopes it to a
@@ -45,9 +45,9 @@ const ROOT_ATTR = 'data-chat-widget';
 
 export function init(options: WidgetOptions): WidgetHandle {
   if (typeof document === 'undefined') {
-    throw new Error('@base-project-scope/widget needs a DOM; call init() in the browser');
+    throw new Error('@ligaxai/widget needs a DOM; call init() in the browser');
   }
-  const client = new BaseProject({
+  const client = new LigaX({
     apiKey: options.publishableKey,
     baseURL: options.baseURL,
     fetch: options.fetch,
@@ -58,7 +58,7 @@ export function init(options: WidgetOptions): WidgetHandle {
   const root = document.createElement('div');
   root.setAttribute(ROOT_ATTR, '');
   root.setAttribute('role', 'region');
-  root.setAttribute('aria-label', '__PROJECT_TITLE__ chat');
+  root.setAttribute('aria-label', 'LigaX AI chat');
   applyTheme(root, options.theme);
   root.innerHTML = `
     <style>${STYLES}</style>
@@ -161,7 +161,7 @@ function resolveContainer(container: WidgetOptions['container']): HTMLElement {
   if (container instanceof HTMLElement) return container;
   if (typeof container === 'string') {
     const el = document.querySelector<HTMLElement>(container);
-    if (!el) throw new Error(`@base-project-scope/widget: no element matches "${container}"`);
+    if (!el) throw new Error(`@ligaxai/widget: no element matches "${container}"`);
     return el;
   }
   const el = document.createElement('div');

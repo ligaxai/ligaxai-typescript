@@ -4,7 +4,7 @@ import { useState } from 'react';
 
 /**
  * Calls the route in `app/api/chat/route.ts`, which holds the secret key and proxies to
- * the API. Nothing in this file ever sees `BASE_PROJECT_API_KEY`.
+ * the API. Nothing in this file ever sees `LIGAX_API_KEY`.
  */
 export default function Page() {
   const [output, setOutput] = useState<string>('');
@@ -29,7 +29,7 @@ export default function Page() {
 
   return (
     <main>
-      <h1>__PROJECT_TITLE__ · Next.js example</h1>
+      <h1>LigaX AI · Next.js example</h1>
       <p>
         The button posts to <code>/api/chat</code>; the route handler calls the API with the
         server-side key.

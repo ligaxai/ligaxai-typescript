@@ -2,7 +2,7 @@
 /**
  * Download the public API spec and conformance fixtures for the tag in SPEC_VERSION.
  *
- *   pnpm sync-spec                  # uses SPEC_VERSION, org __GITHUB_ORG__, repo <slug>-spec
+ *   pnpm sync-spec                  # uses SPEC_VERSION, org ligaxai, repo <slug>-spec
  *   pnpm sync-spec --tag spec-v0.3.0 --repo other-org/other-spec --dry-run
  *
  * Release assets expected on the GitHub release `<tag>`:
@@ -21,7 +21,7 @@ const ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const args = parseArgs(process.argv.slice(2));
 
 const tag = args.tag ?? readFileSync(resolve(ROOT, 'SPEC_VERSION'), 'utf8').trim();
-const repo = args.repo ?? '__GITHUB_ORG__/base-project-slug'.replace(/-typescript$/, '') + '-spec';
+const repo = args.repo ?? 'ligaxai/ligaxai-typescript'.replace(/-typescript$/, '') + '-spec';
 const apiBase = args['api-base'] ?? process.env.GITHUB_API_URL ?? 'https://api.github.com';
 
 if (!tag || tag === 'unset') {
@@ -38,7 +38,7 @@ if (args['dry-run']) {
 
 const headers = {
   accept: 'application/vnd.github+json',
-  'user-agent': 'base-project-slug/sync-spec',
+  'user-agent': 'ligaxai-typescript/sync-spec',
 };
 if (process.env.GITHUB_TOKEN) headers.authorization = `Bearer ${process.env.GITHUB_TOKEN}`;
 

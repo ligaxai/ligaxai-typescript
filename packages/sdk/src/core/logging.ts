@@ -1,6 +1,6 @@
 /**
  * Minimal leveled logger. Level comes from the `logLevel` client option, else the
- * `BASE_PROJECT_LOG` env var, else `warn`. The default sink is `console`; pass `logger` to route
+ * `LIGAX_LOG` env var, else `warn`. The default sink is `console`; pass `logger` to route
  * into pino/winston/etc.
  *
  * Request-level logs pass through `redactHeaders` so an `Authorization` value is never written
@@ -43,7 +43,7 @@ export function createLogger(level: LogLevel, sink: Logger = console): Logger {
   const gate =
     (lvl: LogLevel, fn: (message: string, ...rest: unknown[]) => void) =>
     (message: string, ...rest: unknown[]) => {
-      if (LEVELS[lvl] <= threshold) fn.call(sink, `[base-project-slug] ${message}`, ...rest);
+      if (LEVELS[lvl] <= threshold) fn.call(sink, `[ligaxai-typescript] ${message}`, ...rest);
     };
   return {
     error: gate('error', sink.error),

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { BaseProject } from '../src/index.js';
+import { LigaX } from '../src/index.js';
 import { Stream } from '../src/core/streaming.js';
 import { chunkedBody, scriptedFetch } from './helpers.js';
 
@@ -77,7 +77,7 @@ describe('Stream', () => {
 
   it('is returned by the client for stream: true requests', async () => {
     const fetch = scriptedFetch([sseResponse(['data: {"n":1}\n\ndata: [DONE]\n\n'])]);
-    const client = new BaseProject({ apiKey: 'k', baseURL: 'https://api.example', fetch });
+    const client = new LigaX({ apiKey: 'k', baseURL: 'https://api.example', fetch });
     const stream = await client.post<Stream<{ n: number }>>('/runs', { body: {}, stream: true });
     expect(stream).toBeInstanceOf(Stream);
     expect(fetch.calls[0]?.headers.get('accept')).toBe('text/event-stream');

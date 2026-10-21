@@ -4,7 +4,7 @@ import {
   APIError,
   AuthenticationError,
   BadRequestError,
-  BaseProjectError,
+  LigaXError,
   ConflictError,
   InternalServerError,
   NotFoundError,
@@ -32,7 +32,7 @@ describe('APIError.generate', () => {
   it.each(cases)('maps status %i', (status, Err) => {
     const err = APIError.generate(status, null, undefined, new Headers());
     expect(err).toBeInstanceOf(Err);
-    expect(err).toBeInstanceOf(BaseProjectError);
+    expect(err).toBeInstanceOf(LigaXError);
     expect(err.status).toBe(status);
     expect(err.name).toBe(Err.name);
   });

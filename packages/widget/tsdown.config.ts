@@ -11,14 +11,14 @@ export default defineConfig([
     dts: true,
     sourcemap: true,
     clean: true,
-    deps: { neverBundle: [/^@base-project-scope\//] },
+    deps: { neverBundle: [/^@ligaxai\//] },
   },
   // (b) one self-contained script for a <script> tag: everything inlined, global name derived
   // from the class prefix.
   {
     entry: { 'widget.global': 'src/global.ts' },
     format: 'iife',
-    globalName: 'BaseProjectWidget',
+    globalName: 'LigaXWidget',
     platform: 'browser',
     target: 'es2020',
     dts: false,

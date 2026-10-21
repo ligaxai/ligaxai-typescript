@@ -41,12 +41,12 @@ CJS output was rejected to avoid two copies in apps that also use the AI SDK.
 ## 2026-10-22 — Optional peers are type-only; the React hook receives `useChat`
 
 **Context:** `/ai-sdk` and `/next` must not force `ai` or `next` onto every consumer, and
-`@base-project-scope/react` must work for people who only want the transport.
+`@ligaxai/react` must work for people who only want the transport.
 
 **Decision:** `ai`, `next` and `@ai-sdk/react` are imported with `import type` and marked
-`external`. `useBaseProjectChat({ useChat, ... })` takes the hook as a parameter instead of
-importing it — a lazy `import()` cannot satisfy React's synchronous hook rules, and a static import
-would make the peer mandatory.
+`external`. `useLigaXChat({ useChat, ... })` takes the hook as a parameter instead of importing it —
+a lazy `import()` cannot satisfy React's synchronous hook rules, and a static import would make the
+peer mandatory.
 
 **Consequences:** One extra argument in the hook call; in exchange the app controls which AI SDK
 copy runs, and the package tests need neither `ai` nor `@ai-sdk/react` at runtime.
@@ -77,8 +77,8 @@ tests and the conformance runner assert on the exact rules.
 **Context:** `standardwebhooks` on npm has no `exports` map and a sync pure-JS SHA-256; the SDK must
 run in workerd and browsers.
 
-**Decision:** Implement verify/sign with `crypto.subtle` under `@base-project-scope/sdk/webhooks`
-using the standard's header names and `v1,` scheme, so the official library stays a drop-in.
+**Decision:** Implement verify/sign with `crypto.subtle` under `@ligaxai/sdk/webhooks` using the
+standard's header names and `v1,` scheme, so the official library stays a drop-in.
 
 **Reference:** `packages/sdk/src/webhooks.ts`
 
@@ -99,8 +99,8 @@ load. ESLint may be added per project with a decision entry.
 
 **Context:** The repo must be a runnable, CI-tested SDK _and_ a clone-and-rename template.
 
-**Decision:** Plain identifiers (`BaseProject`, `@base-project-scope`, `base-project-slug`,
-`__PROJECT_TITLE__`, `__GITHUB_ORG__`, `__DEFAULT_BASE_URL__`) replaced by a dependency-free Node
-script over `git ls-files`, longest tokens first, skipping the lockfile.
+**Decision:** Plain identifiers (`LigaX`, `@ligaxai`, `ligaxai-typescript`, `LigaX AI`, `ligaxai`,
+`https://api.ligax.ai/api/public/v1`) replaced by a dependency-free Node script over `git ls-files`,
+longest tokens first, skipping the lockfile.
 
 **Reference:** `scripts/bootstrap.mjs`, `docs/TEMPLATE-TOKENS.md`

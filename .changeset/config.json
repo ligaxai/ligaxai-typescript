@@ -1,11 +1,9 @@
 {
   "$schema": "https://unpkg.com/@changesets/config@3.1.1/schema.json",
-  "changelog": ["@changesets/changelog-github", { "repo": "__GITHUB_ORG__/base-project-slug" }],
+  "changelog": ["@changesets/changelog-github", { "repo": "ligaxai/ligaxai-typescript" }],
   "commit": false,
   "fixed": [],
-  "linked": [
-    ["@base-project-scope/sdk", "@base-project-scope/react", "@base-project-scope/widget"]
-  ],
+  "linked": [["@ligaxai/sdk", "@ligaxai/react", "@ligaxai/widget"]],
   "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",

@@ -1,9 +1,9 @@
 # CLAUDE.md
 
-**PROJECT_TITLE** TypeScript SDK (`base-project-slug`) — a pnpm workspace publishing
-`@base-project-scope/sdk`, `@base-project-scope/react` and `@base-project-scope/widget`. Node 22+,
-pnpm 10. Hand-written in the openai-node / anthropic-sdk-typescript shape; only the request and
-response **types** are generated from the API spec.
+**PROJECT_TITLE** TypeScript SDK (`ligaxai-typescript`) — a pnpm workspace publishing
+`@ligaxai/sdk`, `@ligaxai/react` and `@ligaxai/widget`. Node 22+, pnpm 10. Hand-written in the
+openai-node / anthropic-sdk-typescript shape; only the request and response **types** are generated
+from the API spec.
 
 **Ground truth:** `docs/ai-stack.md` for stack facts; `docs/SUMMARY.md` + `docs/STATUS.md` for where
 the project stands. This file holds the invariants.
@@ -11,7 +11,7 @@ the project stands. This file holds the invariants.
 ## Commands
 
 - `pnpm check` — typecheck + prettier + vitest + build + publint. **Must pass before "done".**
-- `pnpm test` / `pnpm --filter @base-project-scope/sdk test` — vitest (root runs all projects).
+- `pnpm test` / `pnpm --filter @ligaxai/sdk test` — vitest (root runs all projects).
 - `pnpm build` — tsdown for the three packages (the example app is deliberately not built).
 - `pnpm sync-spec` then `pnpm gen:types` — refresh `openapi/openapi.json` and the generated types
   for the tag in `SPEC_VERSION`. `node scripts/gen-types.mjs --check` is the CI drift gate.

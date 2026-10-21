@@ -5,8 +5,8 @@ import type { Fetch } from './core/base-client.js';
 import { APIError } from './core/errors.js';
 
 /**
- * `@base-project-scope/sdk/ai-sdk` — a Vercel AI SDK `ChatTransport` so `useChat` from
- * `@ai-sdk/react` talks to a __PROJECT_TITLE__ endpoint (normally your own route built with
+ * `@ligaxai/sdk/ai-sdk` — a Vercel AI SDK `ChatTransport` so `useChat` from
+ * `@ai-sdk/react` talks to a LigaX AI endpoint (normally your own route built with
  * `createRouteHandler`, so the secret key never reaches the browser).
  *
  * The wire is the AI SDK's UI message stream: SSE with one JSON `UIMessageChunk` per `data:`

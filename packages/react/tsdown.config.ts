@@ -11,6 +11,6 @@ export default defineConfig({
   clean: true,
   // Peers and the sibling SDK are resolved by the consumer's bundler, never inlined.
   deps: {
-    neverBundle: ['react', 'react/jsx-runtime', 'ai', '@ai-sdk/react', /^@base-project-scope\//],
+    neverBundle: ['react', 'react/jsx-runtime', 'ai', '@ai-sdk/react', /^@ligaxai\//],
   },
 });

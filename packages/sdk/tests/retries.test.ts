@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { BaseProject } from '../src/index.js';
+import { LigaX } from '../src/index.js';
 import {
   APIConnectionError,
   APITimeoutError,
@@ -15,7 +15,7 @@ import { json, scriptedFetch } from './helpers.js';
 const silent = { error() {}, warn() {}, info() {}, debug() {} };
 
 function makeClient(fetch: ReturnType<typeof scriptedFetch>, maxRetries = 2) {
-  return new BaseProject({
+  return new LigaX({
     apiKey: 'k',
     baseURL: 'https://api.example',
     fetch,
@@ -163,7 +163,7 @@ describe('retries', () => {
           req.init.signal?.addEventListener('abort', () => reject(req.init.signal?.reason));
         }),
     ]);
-    const client = new BaseProject({
+    const client = new LigaX({
       apiKey: 'k',
       baseURL: 'https://api.example',
       fetch,

@@ -18,10 +18,10 @@ alongside every substantive change (see "Living docs" in [`CLAUDE.md`](../CLAUDE
 ### @sadain
 
 - **Project base setup (2026-10-22)** — Scaffolded the workspace from the design brief: the
-  `@base-project-scope/sdk` client with the full request pipeline, streaming, pagination, errors and
-  the `/next`, `/ai-sdk`, `/webhooks`, `/errors` subpaths; `@base-project-scope/react`;
-  `@base-project-scope/widget` with an IIFE build; the Next.js example; spec/bootstrap scripts; CI +
-  release workflows; living docs. `pnpm check` green on Node 24.12.
+  `@ligaxai/sdk` client with the full request pipeline, streaming, pagination, errors and the
+  `/next`, `/ai-sdk`, `/webhooks`, `/errors` subpaths; `@ligaxai/react`; `@ligaxai/widget` with an
+  IIFE build; the Next.js example; spec/bootstrap scripts; CI + release workflows; living docs.
+  `pnpm check` green on Node 24.12.
 
 ## Unplanned Changes
 

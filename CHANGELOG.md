@@ -9,12 +9,12 @@ Repository-level changes (tooling, docs, CI). Package changelogs are written by 
 
 ### Added — Project base setup
 
-Template skeleton for the __PROJECT_TITLE__ TypeScript SDK monorepo (`base-project-slug`).
+Template skeleton for the LigaX AI TypeScript SDK monorepo (`ligaxai-typescript`).
 
 - **Workspace** — pnpm 10 workspace (`packages/*`, `examples/*`), strict `tsconfig.base.json`
   (ES2022, Bundler resolution, `exactOptionalPropertyTypes`), Prettier, EditorConfig, Changesets
   (linked versions, public access), Apache-2.0.
-- **`@base-project-scope/sdk`** — `BaseProject` client (env/arg options, browser guard, injected
+- **`@ligaxai/sdk`** — `LigaX` client (env/arg options, browser guard, injected
   fetch, leveled redacting logger); request pipeline with Bearer auth, User-Agent stamped from
   package.json at build, `X-Request-Id` capture (`_request_id`), auto `Idempotency-Key` reused
   across retries, retry policy (`retry-after-ms` → `retry-after` → 0.5–8 s jittered backoff,
@@ -26,12 +26,12 @@ Template skeleton for the __PROJECT_TITLE__ TypeScript SDK monorepo (`base-proje
   (`createChatTransport` implementing the Vercel AI SDK `ChatTransport`). ESM + CJS + d.ts via
   tsdown; publint clean. 63 vitest cases including a conformance runner over
   `conformance/cases/*.json` and `conformance/sse/*.txt`.
-- **`@base-project-scope/react`** — `BaseProjectProvider`, `useBaseProject`,
-  `useBaseProjectTransport`, `useBaseProjectChat` (takes `useChat` as a parameter so
+- **`@ligaxai/react`** — `LigaXProvider`, `useLigaX`,
+  `useLigaXTransport`, `useLigaXChat` (takes `useChat` as a parameter so
   `@ai-sdk/react` stays an optional peer). Testing Library test under jsdom.
-- **`@base-project-scope/widget`** — vanilla-DOM chat panel, `init()` + `autoInit()` from script
+- **`@ligaxai/widget`** — vanilla-DOM chat panel, `init()` + `autoInit()` from script
   data attributes; library build plus a self-contained IIFE `dist/widget.global.js` exposing
-  `window.BaseProjectWidget`.
+  `window.LigaXWidget`.
 - **Example** — `examples/nextjs-app` (Next 16 App Router) using `createRouteHandler`;
   typechecked in CI, not built.
 - **Scripts** — `bootstrap.mjs` (token rename over `git ls-files`), `gen-types.mjs`

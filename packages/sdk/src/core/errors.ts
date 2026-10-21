@@ -1,11 +1,11 @@
 /**
- * Error hierarchy. Every failure the SDK raises extends `BaseProjectError`, so a caller can
- * `catch (e) { if (e instanceof BaseProjectError) ... }` without caring whether the cause was the
+ * Error hierarchy. Every failure the SDK raises extends `LigaXError`, so a caller can
+ * `catch (e) { if (e instanceof LigaXError) ... }` without caring whether the cause was the
  * network, a timeout or the API. The HTTP subclasses mirror the OpenAI/Anthropic SDK shape so the
  * mental model transfers.
  */
 
-export class BaseProjectError extends Error {
+export class LigaXError extends Error {
   constructor(message: string, options?: ErrorOptions) {
     super(message, options);
     this.name = new.target.name;
@@ -13,7 +13,7 @@ export class BaseProjectError extends Error {
 }
 
 /** The request never reached the API or no response came back (DNS, TLS, reset, aborted). */
-export class APIConnectionError extends BaseProjectError {
+export class APIConnectionError extends LigaXError {
   constructor(message = 'Connection error.', options?: ErrorOptions) {
     super(message, options);
   }
@@ -42,7 +42,7 @@ export interface APIErrorBody {
   [key: string]: unknown;
 }
 
-export class APIError extends BaseProjectError {
+export class APIError extends LigaXError {
   readonly status: number;
   readonly headers: Headers;
   readonly body: unknown;
@@ -115,7 +115,7 @@ export class RateLimitError extends APIError {}
 export class InternalServerError extends APIError {}
 
 /** Raised when the caller tries to use the SDK in a browser without opting in. */
-export class BrowserEnvironmentError extends BaseProjectError {}
+export class BrowserEnvironmentError extends LigaXError {}
 
-/** Raised by `@base-project-scope/sdk/webhooks` when a signature does not verify. */
-export class WebhookVerificationError extends BaseProjectError {}
+/** Raised by `@ligaxai/sdk/webhooks` when a signature does not verify. */
+export class WebhookVerificationError extends LigaXError {}

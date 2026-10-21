@@ -3,7 +3,7 @@ import { BrowserEnvironmentError } from './core/errors.js';
 import { createLogger, type Logger, type LogLevel, parseLogLevel } from './core/logging.js';
 import { Health } from './resources/health.js';
 
-export const DEFAULT_BASE_URL = 'https://api.ligax.ai/api/public/v1';
+export const DEFAULT_BASE_URL = 'https://enterprise.ligax.ai/api/public/v1';
 export const DEFAULT_TIMEOUT_MS = 600_000;
 export const DEFAULT_MAX_RETRIES = 2;
 

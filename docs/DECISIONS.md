@@ -100,7 +100,7 @@ load. ESLint may be added per project with a decision entry.
 **Context:** The repo must be a runnable, CI-tested SDK _and_ a clone-and-rename template.
 
 **Decision:** Plain identifiers (`LigaX`, `@ligaxai`, `ligaxai-typescript`, `LigaX AI`, `ligaxai`,
-`https://api.ligax.ai/api/public/v1`) replaced by a dependency-free Node script over `git ls-files`,
-longest tokens first, skipping the lockfile.
+`https://enterprise.ligax.ai/api/public/v1`) replaced by a dependency-free Node script over
+`git ls-files`, longest tokens first, skipping the lockfile.
 
 **Reference:** `scripts/bootstrap.mjs`, `docs/TEMPLATE-TOKENS.md`

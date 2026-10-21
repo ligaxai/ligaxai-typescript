@@ -1,16 +1,21 @@
 name: Release
 
-# Changesets flow: on every push to main, open/refresh the "Version Packages" PR; when that PR is
-# merged (no pending changesets remain), publish the bumped packages to npm with provenance.
+# Two channels, same package names, one registry:
 #
-# First publish of each package is MANUAL (`pnpm publish --access public` with 2FA from a
-# maintainer's machine): npm's trusted-publisher / provenance settings attach to an existing
-# package, so this job cannot create one. After that, the `npm` environment below holds no token
-# at all — OIDC (`id-token: write`) is the credential.
+#   dev  — every push to `dev` publishes a snapshot of every publishable package as
+#          `<version>-dev.<run>` under the npm dist-tag `dev`. `npm i @ligaxai/sdk` (tag `latest`)
+#          never resolves these; `npm i @ligaxai/sdk@dev` or an exact pin does. Environment `npm-dev`.
+#   main — Changesets: on every push to main, open/refresh the "Version Packages" PR; when it is
+#          merged, publish the bumped packages under `latest`. Environment `npm`.
+#
+# First publish of each package is MANUAL (`pnpm publish --access public --tag dev` with 2FA from
+# a maintainer's machine): npm's trusted-publisher / provenance settings attach to an existing
+# package. After that no token is stored anywhere — OIDC (`id-token: write`) is the credential.
+# Provenance requires a public repo + public packages.
 
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
 
 concurrency: release-${{ github.ref }}
 
@@ -20,7 +25,8 @@ permissions:
   id-token: write
 
 jobs:
-  release:
+  stable:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment: npm
     steps:
@@ -35,7 +41,6 @@ jobs:
           registry-url: https://registry.npmjs.org
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
-
       - name: Version PR or publish
         uses: changesets/action@v1
         with:
@@ -45,5 +50,25 @@ jobs:
           commit: 'chore: version packages'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Provenance requires a public repo + public packages; it is attested from the OIDC token.
+          NPM_CONFIG_PROVENANCE: 'true'
+
+  dev:
+    if: github.ref == 'refs/heads/dev'
+    runs-on: ubuntu-latest
+    environment: npm-dev
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+      - name: Stamp snapshot versions (not committed)
+        run: node scripts/snapshot-version.mjs "dev.${GITHUB_RUN_NUMBER}"
+      - name: Publish under the `dev` dist-tag
+        run: pnpm -r --filter './packages/*' publish --access public --tag dev --no-git-checks
+        env:
           NPM_CONFIG_PROVENANCE: 'true'

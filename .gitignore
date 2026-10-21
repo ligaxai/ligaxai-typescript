@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.next/
+*.tsbuildinfo
+coverage/
+.DS_Store
+*.log
+.spec-tmp/
+# local secrets: anything dot-env-shaped except the example
+.env
+.env.*
+!.env.example

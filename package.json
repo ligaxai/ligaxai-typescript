@@ -1,0 +1,37 @@
+{
+  "name": "base-project-slug",
+  "private": true,
+  "description": "__PROJECT_TITLE__ TypeScript SDK monorepo",
+  "license": "Apache-2.0",
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=22",
+    "pnpm": ">=10"
+  },
+  "scripts": {
+    "build": "pnpm --filter \"./packages/*\" run build",
+    "test": "vitest run",
+    "typecheck": "pnpm -r run typecheck",
+    "lint": "prettier --check .",
+    "format": "prettier --write .",
+    "publint": "pnpm --filter \"./packages/*\" exec publint --strict",
+    "check": "pnpm typecheck && pnpm lint && pnpm test && pnpm build && pnpm publint",
+    "gen:types": "node scripts/gen-types.mjs",
+    "sync-spec": "node scripts/sync-spec.mjs",
+    "changeset": "changeset",
+    "version": "changeset version && pnpm install --lockfile-only",
+    "release": "pnpm build && changeset publish"
+  },
+  "devDependencies": {
+    "@changesets/changelog-github": "1.0.1",
+    "@changesets/cli": "3.0.3",
+    "@types/node": "24.19.2",
+    "openapi-typescript": "7.13.0",
+    "prettier": "3.9.10",
+    "publint": "0.3.25",
+    "tsdown": "0.23.1",
+    "typescript": "5.9.3",
+    "vite": "8.3.5",
+    "vitest": "5.0.5"
+  }
+}

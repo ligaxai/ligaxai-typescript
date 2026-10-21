@@ -1,0 +1,13 @@
+{
+  "$schema": "https://unpkg.com/@changesets/config@3.1.1/schema.json",
+  "changelog": ["@changesets/changelog-github", { "repo": "__GITHUB_ORG__/base-project-slug" }],
+  "commit": false,
+  "fixed": [],
+  "linked": [
+    ["@base-project-scope/sdk", "@base-project-scope/react", "@base-project-scope/widget"]
+  ],
+  "access": "public",
+  "baseBranch": "main",
+  "updateInternalDependencies": "patch",
+  "ignore": ["nextjs-app-example"]
+}

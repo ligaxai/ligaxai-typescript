@@ -1,0 +1,81 @@
+{
+  "name": "@base-project-scope/react",
+  "version": "0.0.0",
+  "description": "React bindings for the __PROJECT_TITLE__ SDK",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/__GITHUB_ORG__/base-project-slug.git",
+    "directory": "packages/react"
+  },
+  "homepage": "https://github.com/__GITHUB_ORG__/base-project-slug#readme",
+  "bugs": "https://github.com/__GITHUB_ORG__/base-project-slug/issues",
+  "keywords": [
+    "base-project-slug",
+    "react",
+    "chat",
+    "hooks"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=22"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.mts",
+        "default": "./dist/index.mjs"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@base-project-scope/sdk": "workspace:*"
+  },
+  "peerDependencies": {
+    "@ai-sdk/react": ">=3",
+    "ai": ">=6",
+    "react": ">=18"
+  },
+  "peerDependenciesMeta": {
+    "@ai-sdk/react": {
+      "optional": true
+    },
+    "ai": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@ai-sdk/react": "4.0.152",
+    "@testing-library/dom": "10.4.2",
+    "@testing-library/react": "16.3.3",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "ai": "7.0.148",
+    "jsdom": "29.1.1",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "zod": "4.6.7"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

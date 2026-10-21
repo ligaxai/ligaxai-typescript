@@ -1,0 +1,62 @@
+{
+  "name": "@base-project-scope/widget",
+  "version": "0.0.0",
+  "description": "Drop-in chat widget for __PROJECT_TITLE__ — one script tag, no framework",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/__GITHUB_ORG__/base-project-slug.git",
+    "directory": "packages/widget"
+  },
+  "homepage": "https://github.com/__GITHUB_ORG__/base-project-slug#readme",
+  "bugs": "https://github.com/__GITHUB_ORG__/base-project-slug/issues",
+  "keywords": [
+    "base-project-slug",
+    "widget",
+    "chat",
+    "embed"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=22"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
+  "unpkg": "./dist/widget.global.js",
+  "jsdelivr": "./dist/widget.global.js",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.mts",
+        "default": "./dist/index.mjs"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./widget.global.js": "./dist/widget.global.js",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@base-project-scope/sdk": "workspace:*"
+  },
+  "devDependencies": {
+    "jsdom": "29.1.1"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

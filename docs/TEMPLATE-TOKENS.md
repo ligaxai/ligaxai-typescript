@@ -28,7 +28,7 @@ and prints a per-token count.
 
 ## Not tokens (edit by hand after bootstrap)
 
-- `security@example.com` in `SECURITY.md`.
+- `security@ligaments.ai` in `SECURITY.md`.
 - `SPEC_VERSION` (`unset`) and the `health` example resource / generated-types stub.
 - The `Copyright 2026 … contributors` line in `LICENSE`.
 - `.nvmrc` if your team standardises on a different Node 22/24 patch.

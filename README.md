@@ -78,7 +78,7 @@ const event = await new Webhook(process.env.WEBHOOK_SECRET!).verify(rawBody, req
 | Option / env                        | Default                                                                                           |
 | ----------------------------------- | ------------------------------------------------------------------------------------------------- |
 | `apiKey` / `LIGAX_API_KEY`          | —                                                                                                 |
-| `baseURL` / `LIGAX_BASE_URL`        | `https://api.ligax.ai/api/public/v1`                                                              |
+| `baseURL` / `LIGAX_BASE_URL`        | `https://enterprise.ligax.ai/api/public/v1`                                                       |
 | `timeout`                           | `600000` ms                                                                                       |
 | `maxRetries`                        | `2` — connection errors, 408/409/429/5xx; never 402/403; honours `retry-after-ms` / `retry-after` |
 | `defaultHeaders`, `fetch`, `logger` | —                                                                                                 |
@@ -115,3 +115,14 @@ This repo is also the base template for other SDKs. See
 ## License
 
 Apache-2.0 — see [LICENSE](LICENSE).
+
+## Release channels
+
+| Channel | Source                       | Version shape                  | Install                                       |
+| ------- | ---------------------------- | ------------------------------ | --------------------------------------------- |
+| dev     | every push to `dev`          | `0.1.0-dev.42`, dist-tag `dev` | `pnpm add @ligaxai/sdk@dev` (or an exact pin) |
+| stable  | Changesets release on `main` | `0.1.0`, dist-tag `latest`     | `pnpm add @ligaxai/sdk`                       |
+
+`@ligaxai/sdk@latest` never resolves a `-dev.` build. Point a dev install at the development
+platform with `LIGAX_BASE_URL=https://<dev-host>/api/public/v1`; the built-in default is the
+production host.

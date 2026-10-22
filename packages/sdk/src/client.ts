@@ -3,7 +3,9 @@ import { BrowserEnvironmentError } from './core/errors.js';
 import { createLogger, type Logger, type LogLevel, parseLogLevel } from './core/logging.js';
 import { isBrowserCredential } from './lib/token-provider.js';
 import { ClientTokens } from './resources/client-tokens.js';
+import { ConnectSessions } from './resources/connect-sessions.js';
 import { Conversations } from './resources/conversations.js';
+import { EndUsers } from './resources/end-users.js';
 import { Keys } from './resources/keys.js';
 import { Profiles } from './resources/profiles.js';
 import { Runs } from './resources/runs.js';
@@ -76,6 +78,8 @@ export class LigaX extends BaseClient {
   readonly runs: Runs;
   readonly clientTokens: ClientTokens;
   readonly conversations: Conversations;
+  readonly connectSessions: ConnectSessions;
+  readonly endUsers: EndUsers;
   readonly profiles: Profiles;
   readonly keys: Keys;
   readonly usage: Usage;
@@ -117,6 +121,8 @@ export class LigaX extends BaseClient {
     this.runs = new Runs(this);
     this.clientTokens = new ClientTokens(this);
     this.conversations = new Conversations(this);
+    this.connectSessions = new ConnectSessions(this);
+    this.endUsers = new EndUsers(this);
     this.profiles = new Profiles(this);
     this.keys = new Keys(this);
     this.usage = new Usage(this);

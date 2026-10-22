@@ -157,6 +157,12 @@ describe('verify typing', () => {
       case 'api_key.limit_reached':
         expectTypeOf(parsed.data.object).toEqualTypeOf<'api_key'>();
         break;
+      case 'connection.created':
+        expectTypeOf(parsed.data.status).toEqualTypeOf<'active'>();
+        break;
+      case 'connection.deleted':
+        expectTypeOf(parsed.data.connector_key).toEqualTypeOf<string>();
+        break;
       default:
         expectTypeOf(parsed.data.object).toEqualTypeOf<'run'>();
         expect(parsed.data.interrupt_id).toBe('int_1');

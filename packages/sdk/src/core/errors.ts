@@ -5,6 +5,8 @@
  * mental model transfers.
  */
 
+import type { ConnectSession } from '../types.js';
+
 export class LigaXError extends Error {
   constructor(message: string, options?: ErrorOptions) {
     super(message, options);
@@ -136,3 +138,24 @@ export class BrowserEnvironmentError extends LigaXError {}
 
 /** Raised by `@ligaxai/sdk/webhooks` when a signature does not verify. */
 export class WebhookVerificationError extends LigaXError {}
+
+/**
+ * Raised by `connectAccount()` when the flow cannot finish: the browser blocked the popup, the user
+ * closed it before finishing, or `timeoutMs` passed. `session` is the connect session as last seen
+ * (absent when the popup was blocked before one was created). A `denied`/`failed`/`expired` session
+ * is not an error — `connectAccount()` resolves with it.
+ */
+export class ConnectAccountError extends LigaXError {
+  readonly reason: 'popup_blocked' | 'popup_closed' | 'timeout';
+  readonly session: ConnectSession | undefined;
+
+  constructor(
+    reason: ConnectAccountError['reason'],
+    message: string,
+    session?: ConnectSession,
+  ) {
+    super(message);
+    this.reason = reason;
+    this.session = session;
+  }
+}

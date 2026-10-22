@@ -50,6 +50,27 @@ export type WidgetSession = JSONBody<'widget.sessions.create', 201>;
 
 export type Conversation = JSONBody<'conversations.get', 200>;
 
+/**
+ * `POST /connect_sessions` body. A secret key names `end_user` and `profile_id`; a client token
+ * acts for its own end user and profile, so it sends only `connector_key`.
+ */
+export type ConnectSessionCreateParams = RequestBody<'connectSessions.create'>;
+/** An end user connecting one of their own accounts: open `connect_url` in a popup, then poll. */
+export type ConnectSession = JSONBody<'connectSessions.create', 201>;
+export type ConnectSessionStatus = ConnectSession['status'];
+/** One account an end user connected themselves (not the workspace's shared ones). */
+export type EndUserConnection = components['schemas']['EndUserConnection'];
+export type EndUserConnectionList = JSONBody<'endUsers.connections.list', 200>;
+export type EndUserConnectionDeleted = JSONBody<'endUsers.connections.delete', 200>;
+
+/** Statuses after which a connect session will not change again. */
+export const TERMINAL_CONNECT_SESSION_STATUSES: readonly ConnectSessionStatus[] = [
+  'succeeded',
+  'denied',
+  'failed',
+  'expired',
+];
+
 export type Profile = components['schemas']['Profile'];
 export type ProfileList = JSONBody<'profiles.list', 200>;
 
@@ -91,8 +112,29 @@ export interface WebhookTestEvent {
   timestamp: string;
   data: { object: 'webhook_endpoint'; id: string };
 }
+/**
+ * `connection.created`: an end user's connect session was first seen to succeed. Subscribable
+ * (`WebhookEventType`), but the spec's `webhooks` section does not describe its body yet; the shape
+ * is the platform's emit in `end-user-connections.ts`.
+ */
+export interface ConnectionCreatedWebhookEvent {
+  type: 'connection.created';
+  timestamp: string;
+  data: { object: 'connection'; id: string; end_user_id: string; status: 'active' };
+}
+/** `connection.deleted`: an end user's account was disconnected through the API. Hand-written, as above. */
+export interface ConnectionDeletedWebhookEvent {
+  type: 'connection.deleted';
+  timestamp: string;
+  data: { object: 'connection'; id: string; connector_key: string; end_user_id: string };
+}
+export type ConnectionWebhookEvent = ConnectionCreatedWebhookEvent | ConnectionDeletedWebhookEvent;
 /** Every body a LigaX webhook can carry. Switch on `type` to narrow. */
-export type WebhookEvent = RunWebhookEvent | ApiKeyLimitWebhookEvent | WebhookTestEvent;
+export type WebhookEvent =
+  | RunWebhookEvent
+  | ApiKeyLimitWebhookEvent
+  | ConnectionWebhookEvent
+  | WebhookTestEvent;
 
 /** The API's error body. `param` names the offending field when there is one. */
 export type ErrorBody = JSONBody<'runs.get', 401>;

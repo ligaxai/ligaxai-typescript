@@ -4,6 +4,9 @@ import type { WebhookEvent } from './types.js';
 export { WebhookVerificationError };
 export type {
   ApiKeyLimitWebhookEvent,
+  ConnectionCreatedWebhookEvent,
+  ConnectionDeletedWebhookEvent,
+  ConnectionWebhookEvent,
   RunWebhookEvent,
   WebhookEvent,
   WebhookEventType,

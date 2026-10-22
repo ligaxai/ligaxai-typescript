@@ -1,30 +1,35 @@
 import { useMemo } from 'react';
 import type { ChatInit, ChatTransport, UIMessage } from 'ai';
 import type { useChat as UseChat } from '@ai-sdk/react';
-import { createChatTransport, type ChatTransportOptions } from '@ligaxai/sdk/ai-sdk';
+import { createLigaXTransport, type LigaXTransportOptions } from '@ligaxai/sdk/ai-sdk';
 
 import { useLigaX } from './provider.js';
 
 export type UseChatOptions<M extends UIMessage> = Parameters<typeof UseChat<M>>[0];
 export type UseChatHelpers<M extends UIMessage> = ReturnType<typeof UseChat<M>>;
 
-export interface UseLigaXTransportOptions extends Omit<ChatTransportOptions, 'headers' | 'body'> {
-  /** Profile for this chat; falls back to the provider's. Sent as `profile` in the body. */
+export interface UseLigaXTransportOptions extends Omit<LigaXTransportOptions, 'headers' | 'body'> {
+  /**
+   * Profile for this chat; falls back to the provider's. Sent as `profile` in the body for a route
+   * that chooses among profiles itself — `createRunRoute` ignores it, because it pins the profile
+   * on the server.
+   */
   profile?: string | undefined;
-  headers?: ChatTransportOptions['headers'];
+  headers?: LigaXTransportOptions['headers'];
   body?: Record<string, unknown> | undefined;
 }
 
 /**
- * A memoised `ChatTransport` wired to the nearest `LigaXProvider`: posts to its `api`,
- * attaches a client token from `getClientToken` when one is configured, and sends the profile.
- * Use it directly with `new Chat({ transport })` or hand it to `useLigaXChat`.
+ * A memoised `ChatTransport` wired to the nearest `LigaXProvider`: posts to its `api` (your
+ * `createRunRoute` route), translates the LAE event stream into `useChat` chunks, carries the
+ * conversation id between turns, and attaches a client token from `getClientToken` when one is
+ * configured. Use it directly with `new Chat({ transport })` or hand it to `useLigaXChat`.
  */
 export function useLigaXTransport<M extends UIMessage = UIMessage>(
   options: UseLigaXTransportOptions = {},
 ): ChatTransport<M> {
   const ctx = useLigaX();
-  const { api, profile, headers, body, fetch, credentials, reconnectApi } = options;
+  const { api, profile, headers, body, fetch, credentials, onRun } = options;
   const getClientToken = ctx.getClientToken;
   const resolvedProfile = profile ?? ctx.profile;
 
@@ -34,26 +39,17 @@ export function useLigaXTransport<M extends UIMessage = UIMessage>(
       if (!getClientToken) return base;
       return { ...base, Authorization: `Bearer ${await getClientToken()}` };
     };
-    return createChatTransport<M>({
+    return createLigaXTransport<M>({
       api: api ?? ctx.api,
-      reconnectApi,
+      onRun,
       fetch,
       credentials,
       headers: resolveHeaders,
       body: { ...body, ...(resolvedProfile ? { profile: resolvedProfile } : {}) },
     });
-    // `body` and `headers` are compared by identity; pass stable references.
-  }, [
-    api,
-    ctx.api,
-    reconnectApi,
-    fetch,
-    credentials,
-    headers,
-    body,
-    getClientToken,
-    resolvedProfile,
-  ]);
+    // `body`, `headers` and `onRun` are compared by identity; pass stable references. A new
+    // transport also forgets the conversation ids it was carrying.
+  }, [api, ctx.api, onRun, fetch, credentials, headers, body, getClientToken, resolvedProfile]);
 }
 
 /** `useChat`'s own options minus the transport (which this hook supplies) and the `chat` form. */
@@ -71,18 +67,19 @@ export interface UseLigaXChatOptions<M extends UIMessage>
 }
 
 /**
- * `useChat` with the transport pre-built from the provider. Everything `useChat` accepts
- * (`id`, `messages`, `onFinish`, ...) passes straight through.
+ * `useChat` with the LigaX transport pre-built. Everything `useChat` accepts (`id`, `messages`,
+ * `onFinish`, ...) passes straight through; `api` is your server route (default `/api/chat`, or the
+ * provider's).
  *
  * ```tsx
  * import { useChat } from '@ai-sdk/react';
- * const { messages, sendMessage } = useLigaXChat({ useChat, profile: 'support' });
+ * const { messages, sendMessage, status } = useLigaXChat({ useChat, api: '/api/chat' });
  * ```
  */
 export function useLigaXChat<M extends UIMessage = UIMessage>(
   options: UseLigaXChatOptions<M>,
 ): UseChatHelpers<M> {
-  const { useChat, api, profile, headers, body, fetch, credentials, reconnectApi, ...chatOptions } =
+  const { useChat, api, profile, headers, body, fetch, credentials, onRun, ...chatOptions } =
     options;
   const transport = useLigaXTransport<M>({
     api,
@@ -91,7 +88,7 @@ export function useLigaXChat<M extends UIMessage = UIMessage>(
     body,
     fetch,
     credentials,
-    reconnectApi,
+    onRun,
   });
   return useChat<M>({ ...(chatOptions as UseChatPassThrough<M>), transport });
 }

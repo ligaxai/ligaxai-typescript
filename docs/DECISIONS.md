@@ -17,7 +17,7 @@ the committed file differs from a fresh run.
 **Consequences:** A new endpoint is a 5-line resource method plus a conformance case. The Python SDK
 mirrors the same layout so behaviour stays in lockstep.
 
-**Reference:** `packages/sdk/src/resources/health.ts`, `scripts/gen-types.mjs`
+**Reference:** `packages/sdk/src/resources/runs.ts` (was `health.ts`), `scripts/gen-types.mjs`
 
 ---
 
@@ -104,3 +104,42 @@ load. ESLint may be added per project with a decision entry.
 `git ls-files`, longest tokens first, skipping the lockfile.
 
 **Reference:** `scripts/bootstrap.mjs`, `docs/TEMPLATE-TOKENS.md`
+
+---
+
+## 2026-10-22 — Normalise the spec's `$defs` in `gen-types`, not in the contract file
+
+**Context:** The platform builds `openapi.json` from zod with `toJSONSchema`, which emits shared
+shapes as inline `$defs` referenced by `#/$defs/<Name>`. Inside an OpenAPI document that pointer
+resolves against the document root, so openapi-typescript refuses the spec.
+
+**Decision:** Commit the contract byte-for-byte as the platform publishes it; `gen-types.mjs` hoists
+every `$defs` entry into `components.schemas` and rewrites the pointers before generation, and fails
+if two same-named `$defs` differ. The drift check runs the same normalisation.
+
+**Consequences:** The shared shapes get names (`Run`, `RunStatus`, `Profile`, `RunEvent`). The real
+fix belongs in the platform's `src/lib/public-api/openapi.ts` (emit `components.schemas`); once it
+does, the normalisation becomes a no-op.
+
+**Reference:** `scripts/gen-types.mjs`, `openapi/README.md`
+
+---
+
+## 2026-10-22 — The SDK assembles text by offset; the browser gets LAE, not a UI stream
+
+**Context:** `POST /runs` in `stream` mode passes the engine's LAE frames through. `text.delta` is
+offset-addressed (UTF-16) and a resume replays frames; appending deltas works on a clean run and
+duplicates text on every resume.
+
+**Decision:** `TextAssembler` writes each delta at its offset per `part_id`, yields only new
+contiguous text, and joins text parts in `part.start` order — the platform's own fold rule.
+`createRunRoute` returns the LAE stream unchanged and `createLigaXTransport` translates it to
+`UIMessageChunk`s in the browser, so one wire serves `useChat`, the raw SDK and any other client.
+
+**Consequences:** The translation (and its tool/interrupt mapping) ships in the browser bundle of
+`/ai-sdk`; a server-side translation is available as `toUIMessageChunks` for apps that prefer the AI
+SDK's own stream. The conversation id rides `X-Conversation-Id` → `conversation_id`, held per chat
+in the transport.
+
+**Reference:** `packages/sdk/src/lib/text-assembler.ts`, `packages/sdk/src/ai-sdk.ts`,
+`packages/sdk/src/next.ts`

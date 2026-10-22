@@ -7,6 +7,33 @@ Repository-level changes (tooling, docs, CI). Package changelogs are written by 
 
 ## [Unreleased]
 
+### Added — Agent API v0.1 (`feat/agent-api-v0.1`)
+
+- **Contract** — `openapi/openapi.json` copied from `ligax-enterprise/docs/public-api/spec`,
+  `SPEC_VERSION` = `public-api-spec-v0.1.0`, generated types regenerated. `gen-types.mjs` hoists the
+  platform's zod `$defs` into `components.schemas` (their `#/$defs` pointers do not resolve inside an
+  OpenAPI document), so the contract file itself is never hand-edited.
+- **`@ligaxai/sdk` resources** — `runs.create/stream/wait/get/events/followEvents/cancel/
+  resolveInterrupt`, `conversations.get`, `profiles.list/get`, `keys.self`, `usage.get`; snake_case
+  wire bodies passed through; named type aliases (`Run`, `RunCreateParams`, `Profile`, …) over the
+  generated file. The example `health` resource is gone.
+- **`RunStream` + `TextAssembler`** — typed LAE events (`seq: null` on `stream.*` control frames,
+  unknown types kept), `runId`/`conversationId` from response headers, `textStream()`,
+  `finalText()`, `finalResult()`, `toReadableStream()`, `abort()`. Text is written at its UTF-16
+  offset per part (replays are no-ops, out-of-order deltas held until contiguous, surrogate pairs
+  never split), joined in `part.start` order, reasoning excluded. A final SSE event without a
+  trailing blank line is still delivered.
+- **Errors** — `APIError.requestId`, `PaymentRequiredError.resetsAt` (`X-Limit-Resets-At`); 422
+  joins 402/403 as never retried.
+- **`/ai-sdk`** — `createLigaXTransport` (LAE → `UIMessageChunk`, conversation id carried per
+  chat, `reconnectToStream` → `null`), `laeToUIMessageStream`, `toUIMessageChunks`.
+- **`/next`** — `createRunRoute` (useChat `messages` or `{ input }` in, LAE stream out, profile and
+  end user pinned server-side) and `createRunProxy` (raw `POST /runs` passthrough).
+- **`@ligaxai/react`** — `useLigaXChat` / `useLigaXTransport` on the LAE transport.
+- **Example** — `examples/nextjs-app` is a working chat on `createRunRoute` + `useLigaXChat`.
+- **Conformance** — cases for `runs.create`, `runs.get`, a 402 and a 404; an `lae-run` SSE
+  transcript run through `RunStream`. (by @sadain, 2026-10-22)
+
 ### Added — Project base setup
 
 Template skeleton for the LigaX AI TypeScript SDK monorepo (`ligaxai-typescript`).

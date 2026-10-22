@@ -140,5 +140,5 @@ under `prefers-color-scheme: dark`.
 ## Bundle size
 
 `dist/widget.global.js` (IIFE, everything inlined including the SDK client and the SSE parser):
-**about 42 KB minified, about 15 KB gzip** (≈ 13 KB brotli) at this release. The ESM build is a few
+**about 54 KB minified, about 18 KB gzip** (≈ 16 KB brotli) at this release. The ESM build is a few
 KB on top of `@ligaxai/sdk`, which your bundler shares with the rest of your app.

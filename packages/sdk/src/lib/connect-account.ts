@@ -118,11 +118,7 @@ export async function connectAccount(
     let pollsSinceClose = 0;
     for (;;) {
       if (Date.now() >= deadline) {
-        throw new ConnectAccountError(
-          'timeout',
-          'The account was not connected in time.',
-          session,
-        );
+        throw new ConnectAccountError('timeout', 'The account was not connected in time.', session);
       }
       await sleep(interval, signal);
       const polled = await client.connectSessions.get(created.id, {}, call);

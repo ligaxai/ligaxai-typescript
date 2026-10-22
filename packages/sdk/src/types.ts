@@ -131,10 +131,7 @@ export interface ConnectionDeletedWebhookEvent {
 export type ConnectionWebhookEvent = ConnectionCreatedWebhookEvent | ConnectionDeletedWebhookEvent;
 /** Every body a LigaX webhook can carry. Switch on `type` to narrow. */
 export type WebhookEvent =
-  | RunWebhookEvent
-  | ApiKeyLimitWebhookEvent
-  | ConnectionWebhookEvent
-  | WebhookTestEvent;
+  RunWebhookEvent | ApiKeyLimitWebhookEvent | ConnectionWebhookEvent | WebhookTestEvent;
 
 /** The API's error body. `param` names the offending field when there is one. */
 export type ErrorBody = JSONBody<'runs.get', 401>;

@@ -149,11 +149,7 @@ export class ConnectAccountError extends LigaXError {
   readonly reason: 'popup_blocked' | 'popup_closed' | 'timeout';
   readonly session: ConnectSession | undefined;
 
-  constructor(
-    reason: ConnectAccountError['reason'],
-    message: string,
-    session?: ConnectSession,
-  ) {
+  constructor(reason: ConnectAccountError['reason'], message: string, session?: ConnectSession) {
     super(message);
     this.reason = reason;
     this.session = session;

@@ -137,6 +137,13 @@ export class InternalServerError extends APIError {}
 export class BrowserEnvironmentError extends LigaXError {}
 
 /**
+ * No usable credential: no `apiKey` option and no `LIGAX_API_KEY`, an empty one, or a value that
+ * cannot be a key (whitespace or control characters — usually a copy-paste or a trailing newline).
+ * Raised by the constructor, before any request is sent.
+ */
+export class MissingApiKeyError extends LigaXError {}
+
+/**
  * Raised by `files.create()` before anything is sent when the file is over the API's limit
  * (25 MB): uploading it would only spend the bandwidth to be refused with `413 file_too_large`.
  */

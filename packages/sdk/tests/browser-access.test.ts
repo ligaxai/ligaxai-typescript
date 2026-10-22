@@ -249,7 +249,7 @@ describe('createTokenRoute', () => {
     expect(fetch.calls).toHaveLength(0);
   });
 
-  it('accepts a string user id, pins a conversation, and passes API errors through', async () => {
+  it('accepts a string user id, pins a conversation, and hides the server key’s own refusals', async () => {
     const fetch = scriptedFetch([
       minted({ conversation_id: 'conv_CCCCCCCCCCCCCCCCCCCCCCCC' }),
       json(
@@ -275,8 +275,10 @@ describe('createTokenRoute', () => {
       end_user: { id: 'user_42' },
       conversation_id: 'conv_CCCCCCCCCCCCCCCCCCCCCCCC',
     });
+    // A scope the server's key lacks is a server problem: the browser gets a generic 502.
     const denied = await POST(req());
-    expect(denied.status).toBe(403);
+    expect(denied.status).toBe(502);
+    expect(await denied.text()).not.toContain('insufficient_scope');
     expect(denied.headers.get('x-request-id')).toBe('req_403');
   });
 });

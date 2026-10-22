@@ -361,6 +361,15 @@ export function getElementClass(): new () => LigaXChatElement {
       this.paint(bubble, assembler.text());
       if (failed !== undefined) throw new RunFailed(failed);
       if (!pending) return;
+      // An anonymous visitor can't answer approvals (the API refuses with 403
+      // approval_not_allowed): the site's team answers from their server, and the run waits.
+      if (this.isVisitor()) {
+        this.notice(
+          'This needs approval from the team before the assistant can go on. Check back later for the answer.',
+        );
+        this.setActivity('');
+        return;
+      }
 
       const decision = await this.ask(pending);
       this.setActivity(decision === 'approve' ? 'Approved. Continuing…' : 'Declined.');
@@ -457,6 +466,21 @@ export function getElementClass(): new () => LigaXChatElement {
       return this.client;
     }
 
+    /** An anonymous website visitor: a website key and no token route for a signed-in user. */
+    private isVisitor(): boolean {
+      return this.hasAttribute('publishable-key') && !this.hasAttribute('token-url');
+    }
+
+    /** A plain note in the conversation; text only. */
+    private notice(text: string): void {
+      const note = document.createElement('p');
+      note.className = 'card';
+      note.setAttribute('role', 'status');
+      note.textContent = text;
+      this.log.appendChild(note);
+      this.log.scrollTop = this.log.scrollHeight;
+    }
+
     private conversationKey(): string {
       const scope = this.getAttribute('profile-id') ?? this.getAttribute('token-url') ?? 'default';
       return `ligax.conversation.${scope}`;
@@ -466,7 +490,8 @@ export function getElementClass(): new () => LigaXChatElement {
       this.heading.textContent = this.getAttribute('chat-title') || 'Chat';
       this.input.placeholder = this.getAttribute('placeholder') || 'Type a message…';
       const files = this.getAttribute('files');
-      this.attachButton.hidden = files === null || files === 'false';
+      // Anonymous visitors chat only: uploads and account connections need a signed-in user's token.
+      this.attachButton.hidden = files === null || files === 'false' || this.isVisitor();
       if (this.attachButton.hidden) this.clearAttachments();
       if (this.hasAttribute('open') && this.panel.hidden) this.show();
       this.renderConnectors();
@@ -576,7 +601,7 @@ export function getElementClass(): new () => LigaXChatElement {
 
     /** One button per connector key; built with DOM calls, labels from textContent only. */
     private renderConnectors(): void {
-      const keys = this.connectOff ? [] : this.connectorKeys();
+      const keys = this.connectOff || this.isVisitor() ? [] : this.connectorKeys();
       this.connectArea.hidden = keys.length === 0;
       const buttons = keys.map((key) => {
         const button = document.createElement('button');
@@ -725,8 +750,14 @@ class RunFailed extends Error {}
 function toPending(runId: string, event: RunEvent, tools: Map<string, string>): Pending {
   const p = event.payload;
   const callId = typeof p['tool_call_id'] === 'string' ? p['tool_call_id'] : '';
+  const call = p['tool_call'];
+  const nested =
+    call && typeof call === 'object' ? (call as Record<string, unknown>)['tool_name'] : undefined;
   const tool =
-    (typeof p['tool_name'] === 'string' && p['tool_name']) || tools.get(callId) || 'an action';
+    (typeof p['tool_name'] === 'string' && p['tool_name']) ||
+    (typeof nested === 'string' && nested) ||
+    tools.get(callId) ||
+    'an action';
   const kind = typeof p['kind'] === 'string' ? p['kind'] : 'tool_approval';
   const prompt =
     typeof p['prompt'] === 'string' && p['prompt']

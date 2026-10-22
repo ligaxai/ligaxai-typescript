@@ -108,6 +108,17 @@ function widget(fetch: ReturnType<typeof fakeFetch>, extra: Record<string, unkno
   });
 }
 
+/** A signed-in user's widget: tokens come from the host's own route, not a website key. */
+function signedIn(fetch: ReturnType<typeof fakeFetch>, extra: Record<string, unknown> = {}) {
+  return mount({
+    tokenUrl: '/api/ligax/token',
+    profileId: PROFILE,
+    baseURL: BASE,
+    fetch,
+    ...extra,
+  });
+}
+
 beforeEach(() => {
   define();
 });
@@ -271,7 +282,7 @@ describe('<ligax-chat> conversation', () => {
         prompt: 'Create a support ticket?',
       });
     const fetch = fakeFetch({
-      'POST /widget/sessions': session(),
+      'POST /api/ligax/token': session(),
       'POST /runs': sse(asking),
       'POST /runs/run_1/interrupts/int_1': json({ id: 'run_1', status: 'running' }),
       'GET /runs/run_1/events': (call) => {
@@ -279,7 +290,7 @@ describe('<ligax-chat> conversation', () => {
         return sse(answer('Ticket created.', 3));
       },
     });
-    const el = widget(fetch);
+    const el = signedIn(fetch);
     const done = el.send('open a ticket');
     const card = await vi.waitFor(() => {
       const found = shadow(el).querySelector<HTMLElement>('.card');
@@ -400,8 +411,8 @@ describe('<ligax-chat> connect your account', () => {
   });
 
   it('is hidden without connectors, and shows one humanised button per key', () => {
-    expect(area(widget(fakeFetch({}))).hidden).toBe(true);
-    const el = widget(fakeFetch({}), { connectors: 'gmail, google_calendar,github,<b>x</b>' });
+    expect(area(signedIn(fakeFetch({}))).hidden).toBe(true);
+    const el = signedIn(fakeFetch({}), { connectors: 'gmail, google_calendar,github,<b>x</b>' });
     expect(area(el).hidden).toBe(false);
     expect(buttons(el).map((b) => b.textContent)).toEqual(['Gmail', 'Google Calendar', 'GitHub']);
     expect(buttons(el)[0]?.getAttribute('aria-label')).toBe('Connect Gmail');
@@ -409,7 +420,7 @@ describe('<ligax-chat> connect your account', () => {
 
   it('reads data-connectors from the script tag', async () => {
     const script = document.createElement('script');
-    script.setAttribute('data-publishable-key', 'lgx_pk_live_abc');
+    script.setAttribute('data-token-url', '/api/ligax/token');
     script.setAttribute('data-profile-id', PROFILE);
     script.setAttribute('data-connectors', 'gmail,outlook');
     const el = (await autoInit(document, script))!;
@@ -421,7 +432,7 @@ describe('<ligax-chat> connect your account', () => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
     const popup = fakePopup();
     const fetch = fakeFetch({
-      'POST /widget/sessions': session(),
+      'POST /api/ligax/token': session(),
       'POST /connect_sessions': connectSession({}, 201),
       'GET /connect_sessions/flow_ABCDEFGH': connectSession({
         status: 'succeeded',
@@ -430,7 +441,7 @@ describe('<ligax-chat> connect your account', () => {
         connection_id: 'conn_1',
       }),
     });
-    const el = widget(fetch, { connectors: ['gmail', 'outlook'], open: true });
+    const el = signedIn(fetch, { connectors: ['gmail', 'outlook'], open: true });
     buttons(el)[0]!.click();
     // Synchronously, inside the click: the popup is open and every button waits.
     expect(window.open).toHaveBeenCalledTimes(1);
@@ -455,11 +466,11 @@ describe('<ligax-chat> connect your account', () => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
     fakePopup();
     const fetch = fakeFetch({
-      'POST /widget/sessions': session(),
+      'POST /api/ligax/token': session(),
       'POST /connect_sessions': connectSession({}, 201),
       'GET /connect_sessions/flow_ABCDEFGH': connectSession({ status: 'denied' }),
     });
-    const el = widget(fetch, { connectors: 'gmail' });
+    const el = signedIn(fetch, { connectors: 'gmail' });
     buttons(el)[0]!.click();
     await vi.waitFor(() => expect(fetch.calls.length).toBe(2));
     await vi.advanceTimersByTimeAsync(2_000);
@@ -470,7 +481,7 @@ describe('<ligax-chat> connect your account', () => {
   it('hides the area when the profile does not allow end-user connections', async () => {
     const popup = fakePopup();
     const fetch = fakeFetch({
-      'POST /widget/sessions': session(),
+      'POST /api/ligax/token': session(),
       'POST /connect_sessions': json(
         {
           error: {
@@ -484,7 +495,7 @@ describe('<ligax-chat> connect your account', () => {
         { 'x-should-retry': 'false' },
       ),
     });
-    const el = widget(fetch, { connectors: 'gmail' });
+    const el = signedIn(fetch, { connectors: 'gmail' });
     buttons(el)[0]!.click();
     await vi.waitFor(() => expect(area(el).hidden).toBe(true));
     expect(popup.closed).toBe(true);
@@ -494,12 +505,41 @@ describe('<ligax-chat> connect your account', () => {
   it('asks to allow pop-ups when the browser blocks one', () => {
     vi.spyOn(window, 'open').mockReturnValue(null);
     const fetch = fakeFetch({});
-    const el = widget(fetch, { connectors: 'gmail' });
+    const el = signedIn(fetch, { connectors: 'gmail' });
     buttons(el)[0]!.click();
     return vi.waitFor(() => {
       expect(status(el)).toBe('Allow pop-ups for this site to connect Gmail.');
       expect(fetch.calls).toHaveLength(0);
     });
+  });
+});
+
+describe('<ligax-chat> anonymous visitors', () => {
+  it('chat only: no attach button and no connect buttons, whatever the page asks for', () => {
+    const el = widget(fakeFetch({}), { files: true, connectors: 'gmail' });
+    expect(shadow(el).querySelector<HTMLButtonElement>('.attach')!.hidden).toBe(true);
+    expect(shadow(el).querySelector<HTMLElement>('.connect')!.hidden).toBe(true);
+  });
+
+  it('an approval waits for the team: a notice, and no interrupt is posted', async () => {
+    const asking =
+      frame('stream.ready', null) +
+      frame('tool.start', 1, { tool_call_id: 'call_1', name: 'crm_create_ticket' }) +
+      frame('interrupt.raised', 2, {
+        interrupt_id: 'int_1',
+        kind: 'tool_approval',
+        tool_call: { tool_name: 'crm_create_ticket' },
+      });
+    const fetch = fakeFetch({
+      'POST /widget/sessions': session(),
+      'POST /runs': sse(asking),
+    });
+    const el = widget(fetch);
+    await el.send('open a ticket');
+    const card = shadow(el).querySelector<HTMLElement>('.card')!;
+    expect(card.textContent).toContain('approval from the team');
+    expect(card.querySelector('.approve')).toBeNull();
+    expect(fetch.calls.some((c) => c.url.includes('/interrupts/'))).toBe(false);
   });
 });
 
@@ -545,13 +585,13 @@ describe('<ligax-chat> files', () => {
 
   it('has no attach button unless files are switched on', () => {
     const fetch = fakeFetch({});
-    expect(attachButton(widget(fetch)).hidden).toBe(true);
-    expect(attachButton(widget(fetch, { files: true })).hidden).toBe(false);
+    expect(attachButton(signedIn(fetch)).hidden).toBe(true);
+    expect(attachButton(signedIn(fetch, { files: true })).hidden).toBe(false);
   });
 
   it('reads data-files from the script tag', async () => {
     const script = document.createElement('script');
-    script.setAttribute('data-publishable-key', 'lgx_pk_live_abc');
+    script.setAttribute('data-token-url', '/api/ligax/token');
     script.setAttribute('data-profile-id', PROFILE);
     script.setAttribute('data-files', 'true');
     const el = (await autoInit(document, script))!;
@@ -560,7 +600,7 @@ describe('<ligax-chat> files', () => {
   });
 
   it('the attach button opens the file picker', () => {
-    const el = widget(fakeFetch({}), { files: true });
+    const el = signedIn(fakeFetch({}), { files: true });
     const input = shadow(el).querySelector<HTMLInputElement>('input[type="file"]')!;
     const click = vi.spyOn(input, 'click').mockImplementation(() => undefined);
     attachButton(el).click();
@@ -569,11 +609,11 @@ describe('<ligax-chat> files', () => {
 
   it('uploads with the client token and sends the ids as attachments on the next message only', async () => {
     const fetch = fakeFetch({
-      'POST /widget/sessions': session(),
+      'POST /api/ligax/token': session(),
       'POST /files': stored(),
       'POST /runs': [sse(answer('Read it')), sse(answer('Again'))],
     });
-    const el = widget(fetch, { files: true });
+    const el = signedIn(fetch, { files: true });
 
     pick(el, [new File(['%PDF-'], 'contract.pdf', { type: 'application/pdf' })]);
     await vi.waitFor(() => expect(chips(el)).toEqual(['contract.pdf']));
@@ -599,11 +639,11 @@ describe('<ligax-chat> files', () => {
 
   it('a removed chip is not sent', async () => {
     const fetch = fakeFetch({
-      'POST /widget/sessions': session(),
+      'POST /api/ligax/token': session(),
       'POST /files': stored(),
       'POST /runs': sse(answer('ok')),
     });
-    const el = widget(fetch, { files: true });
+    const el = signedIn(fetch, { files: true });
     pick(el, [new File(['x'], 'x.txt')]);
     await vi.waitFor(() => expect(chips(el)).toEqual(['x.txt']));
     shadow(el).querySelector<HTMLButtonElement>('.chips .remove')!.click();
@@ -616,7 +656,7 @@ describe('<ligax-chat> files', () => {
 
   it('refuses a file over 25 MB without uploading it', async () => {
     const fetch = fakeFetch({});
-    const el = widget(fetch, { files: true });
+    const el = signedIn(fetch, { files: true });
     const big = new File(['x'], 'huge.mov');
     Object.defineProperty(big, 'size', { value: 25 * 1024 * 1024 + 1 });
     pick(el, [big]);
@@ -627,13 +667,13 @@ describe('<ligax-chat> files', () => {
 
   it('says so when an upload fails, without the API body', async () => {
     const fetch = fakeFetch({
-      'POST /widget/sessions': session(),
+      'POST /api/ligax/token': session(),
       'POST /files': json(
         { error: { type: 'permission_error', code: 'insufficient_scope', message: 'raw detail' } },
         403,
       ),
     });
-    const el = widget(fetch, { files: true });
+    const el = signedIn(fetch, { files: true });
     pick(el, [new File(['x'], 'x.txt')]);
     await vi.waitFor(() => expect(status(el)).toMatch(/x\.txt could not be attached/));
     expect(status(el)).not.toContain('raw detail');
@@ -643,7 +683,7 @@ describe('<ligax-chat> files', () => {
   it('keeps the conversation when an attached file has expired', async () => {
     sessionStorage.setItem(`ligax.conversation.${PROFILE}`, CONV);
     const fetch = fakeFetch({
-      'POST /widget/sessions': session(),
+      'POST /api/ligax/token': session(),
       'POST /files': stored(),
       'POST /runs': json(
         {
@@ -657,7 +697,7 @@ describe('<ligax-chat> files', () => {
         404,
       ),
     });
-    const el = widget(fetch, { files: true });
+    const el = signedIn(fetch, { files: true });
     pick(el, [new File(['x'], 'x.txt')]);
     await vi.waitFor(() => expect(chips(el)).toEqual(['x.txt']));
     await el.send('hi');
@@ -669,10 +709,10 @@ describe('<ligax-chat> files', () => {
 
   it('never puts a file name into HTML', async () => {
     const fetch = fakeFetch({
-      'POST /widget/sessions': session(),
+      'POST /api/ligax/token': session(),
       'POST /files': stored(),
     });
-    const el = widget(fetch, { files: true });
+    const el = signedIn(fetch, { files: true });
     pick(el, [new File(['x'], '<img src=x onerror=alert(1)>.txt')]);
     await vi.waitFor(() => expect(chips(el)).toEqual(['<img src=x onerror=alert(1)>.txt']));
     expect(shadow(el).querySelector('.chips img')).toBeNull();

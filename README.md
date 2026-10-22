@@ -387,11 +387,12 @@ Before it works:
 Optional attributes: `data-base-url` (non-production platform), `data-title`, `data-greeting`,
 `data-placeholder`, `data-position` (`bottom-right` | `bottom-left`), `data-open`, and
 `data-connectors="gmail,outlook"` (a "Connect your account" area — see the widget README) and
-`data-files="true"` (a paperclip button: files go with the visitor's next message). Theme it from
-your CSS with custom properties (`ligax-chat { --ligax-accent: #7c3aed; --ligax-radius: 8px }`); it
-follows `prefers-color-scheme`. In React, use `<LigaXChat publishableKey profileId />` from
-`@ligaxai/widget/react`. See [packages/widget/README.md](packages/widget/README.md) for the full
-reference and the bundle size.
+`data-files="true"` (a paperclip button: files go with the visitor's next message). Those two, and
+answering approvals, need a signed-in user (`data-token-url`): anonymous visitors on a website key
+can chat only, and an approval waits for your team. Theme it from your CSS with custom properties
+(`ligax-chat { --ligax-accent: #7c3aed; --ligax-radius: 8px }`); it follows `prefers-color-scheme`.
+In React, use `<LigaXChat publishableKey profileId />` from `@ligaxai/widget/react`. See
+[packages/widget/README.md](packages/widget/README.md) for the full reference and the bundle size.
 
 ### Use from MCP and A2A clients
 
@@ -443,7 +444,7 @@ pnpm test           # vitest across all packages
 pnpm changeset      # describe a user-facing change before opening a PR
 ```
 
-- `SPEC_VERSION` pins the public API spec tag (`public-api-spec-v0.5.0`); `openapi/openapi.json` is
+- `SPEC_VERSION` pins the public API spec tag (`public-api-spec-v0.6.0`); `openapi/openapi.json` is
   the contract and `pnpm gen:types` regenerates the typed models from it (`openapi/README.md`).
 - `examples/nextjs-app` is typechecked in CI but not built; run it with
   `pnpm --filter nextjs-app-example dev`.

@@ -27,19 +27,19 @@ Pin a version in production (`@ligaxai/widget@x.y.z/dist/widget.global.js`) and 
 hash if you serve it from a CDN. The script defines `window.LigaXWidget` (`mount`, `define`,
 `autoInit`).
 
-| Attribute              | Meaning                                                                                           |
-| ---------------------- | ------------------------------------------------------------------------------------------------- |
-| `data-publishable-key` | `lgx_pk_…`. Opens an anonymous session per visitor (`POST /widget/sessions`).                     |
-| `data-profile-id`      | `prf_…`. Required with a publishable key; optional with a token URL that answers `profile_id`.    |
-| `data-token-url`       | Your endpoint answering `{ token, expires_at, profile_id }`; called with the page's cookies.      |
-| `data-base-url`        | API base URL for a non-production platform. Default `https://enterprise.ligax.ai/api/public/v1`.  |
-| `data-title`           | Panel heading. Default "Chat".                                                                    |
-| `data-greeting`        | A first message shown locally (not sent to the agent).                                            |
-| `data-placeholder`     | Composer placeholder.                                                                             |
-| `data-position`        | `bottom-right` (default) or `bottom-left`.                                                        |
-| `data-open`            | Start with the panel open.                                                                        |
-| `data-connectors`      | Comma-separated connector keys (`gmail,outlook`): a "Connect your account" area, one button each. |
-| `data-files`           | `"true"` shows a paperclip button: the visitor attaches files to their next message.              |
+| Attribute              | Meaning                                                                                                                 |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `data-publishable-key` | `lgx_pk_…`. Opens an anonymous session per visitor (`POST /widget/sessions`).                                           |
+| `data-profile-id`      | `prf_…`. Required with a publishable key; optional with a token URL that answers `profile_id`.                          |
+| `data-token-url`       | Your endpoint answering `{ token, expires_at, profile_id }`; called with the page's cookies.                            |
+| `data-base-url`        | API base URL for a non-production platform. Default `https://enterprise.ligax.ai/api/public/v1`.                        |
+| `data-title`           | Panel heading. Default "Chat".                                                                                          |
+| `data-greeting`        | A first message shown locally (not sent to the agent).                                                                  |
+| `data-placeholder`     | Composer placeholder.                                                                                                   |
+| `data-position`        | `bottom-right` (default) or `bottom-left`.                                                                              |
+| `data-open`            | Start with the panel open.                                                                                              |
+| `data-connectors`      | Comma-separated connector keys (`gmail,outlook`): a "Connect your account" area, one button each. Signed-in users only. |
+| `data-files`           | `"true"` shows a paperclip button: the user attaches files to their next message. Signed-in users only.                 |
 
 ## Before it works
 
@@ -91,9 +91,15 @@ register the element and write it in markup: `define()`, then
   and forgets on reload.
 - **Tokens.** The client token is cached until shortly before it expires and refreshed once when the
   API answers `401 token_expired`.
-- **Approvals.** When a run stops with `requires_action`, a card shows the prompt with Approve /
-  Reject (a form or question that the widget cannot render is offered as Dismiss); the decision is
-  posted to `POST /runs/{id}/interrupts/{interrupt_id}` and the run is followed to its end.
+- **Anonymous visitors chat only.** On a website key (`data-publishable-key` without
+  `data-token-url`) the API gives a visitor no account connections, no uploads and no approvals,
+  because anyone can load your page and claim any visitor id. The widget hides the connect area and
+  the paperclip, and when a run needs an approval it shows a notice that your team must answer it
+  (from your server, with a secret key). Use `data-token-url` for signed-in users to get the rest.
+- **Approvals.** For a signed-in user, when a run stops with `requires_action`, a card shows the
+  prompt with Approve / Reject (a form or question that the widget cannot render is offered as
+  Dismiss); the decision is posted to `POST /runs/{id}/interrupts/{interrupt_id}` and the run is
+  followed to its end.
 - **Errors.** 401, 402, 403 and 429 become short, plain messages — the API's error body is never
   shown to a visitor.
 - **Safe rendering.** Answers are built as DOM nodes from a tiny markdown subset — paragraphs,

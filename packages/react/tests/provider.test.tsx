@@ -95,4 +95,64 @@ describe('LigaXProvider', () => {
     expect(passed.transport).toBeDefined();
     expect(typeof (passed.transport as { sendMessages: unknown }).sendMessages).toBe('function');
   });
+
+  it('direct mode: the provider baseURL + getClientToken send the run straight to the API', async () => {
+    const frame = (type: string, seq: number, payload: Record<string, unknown>) =>
+      `event: ${type}\ndata: ${JSON.stringify({ v: 1, type, seq, payload })}\n\n`;
+    const fetch = vi.fn(
+      async (_url: string | URL | Request, _init?: RequestInit) =>
+        new Response(
+          frame('part.start', 1, { part_id: 'p', kind: 'text' }) +
+            frame('text.delta', 2, { part_id: 'p', offset: 0, text: 'Hi' }) +
+            frame('run.end', 3, { status: 'completed', finish_reason: 'stop' }),
+          { headers: { 'content-type': 'text/event-stream', 'x-run-id': 'run_1' } },
+        ),
+    );
+    const getClientToken = vi.fn(async () => ({
+      token: 'lgx_ct_abc.def',
+      expires_at: new Date(Date.now() + 600_000).toISOString(),
+    }));
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <LigaXProvider
+        baseURL="https://api.example/api/public/v1"
+        profile="prf_AAAAAAAAAAAAAAAAAAAA"
+        getClientToken={getClientToken}
+      >
+        {children}
+      </LigaXProvider>
+    );
+    // jsdom is browser-like: the client must accept a token provider without dangerouslyAllowBrowser.
+    const { result } = renderHook(() => useLigaXTransport({ fetch }), { wrapper });
+    const stream = await result.current.sendMessages({
+      trigger: 'submit-message',
+      chatId: 'c1',
+      messageId: undefined,
+      messages: [{ id: 'u1', role: 'user', parts: [{ type: 'text', text: 'hello' }] }],
+      abortSignal: undefined,
+    });
+    const reader = stream.getReader();
+    while (!(await reader.read()).done);
+    const [url, init] = fetch.mock.calls[0]!;
+    expect(String(url)).toBe('https://api.example/api/public/v1/runs');
+    expect(new Headers(init?.headers).get('authorization')).toBe('Bearer lgx_ct_abc.def');
+    expect(JSON.parse(init?.body as string)).toEqual({
+      profile_id: 'prf_AAAAAAAAAAAAAAAAAAAA',
+      input: 'hello',
+      mode: 'stream',
+    });
+  });
+
+  it('direct mode via hook options: getToken + profileId', () => {
+    const useChat = vi.fn((opts: { transport?: unknown }) => ({ opts }));
+    expect(() =>
+      renderHook(() =>
+        useLigaXChat({
+          useChat: useChat as never,
+          getToken: () => 'lgx_ct_x',
+          profileId: 'prf_AAAAAAAAAAAAAAAAAAAA',
+        }),
+      ),
+    ).not.toThrow();
+    expect(useChat).toHaveBeenCalled();
+  });
 });

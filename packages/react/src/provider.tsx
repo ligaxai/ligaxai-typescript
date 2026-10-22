@@ -1,17 +1,27 @@
 import { createContext, useContext, useMemo, type ReactNode } from 'react';
+import type { TokenFetcher } from '@ligaxai/sdk';
 
 /**
  * Context for the browser side of the SDK. The browser never holds a secret API key: it either
- * calls your own backend route (built with `@ligaxai/sdk/next`) or presents a
- * short-lived client token that `getClientToken` fetches from that backend on demand.
+ * calls your own backend route (built with `@ligaxai/sdk/next`) or presents a short-lived client
+ * token that `getClientToken` fetches from that backend (`createTokenRoute`) on demand. With
+ * `baseURL` set too, the chat hooks call the API directly with that token.
  */
 export interface LigaXContextValue {
   /** Your backend route the transport posts to. Default `/api/chat`. */
   api: string;
-  /** Direct API base URL, used only when calling the API with a client token. */
+  /**
+   * The API base URL. Set together with `getClientToken` to switch the chat hooks to direct mode
+   * (e.g. `https://enterprise.ligax.ai/api/public/v1`).
+   */
   baseURL?: string | undefined;
-  /** Resolve a client token; called per request so it can refresh. */
-  getClientToken?: (() => Promise<string> | string) | undefined;
+  /**
+   * Resolve a client token: a string, or `{ token, expires_at }` as `createTokenRoute` answers. In
+   * direct mode it is cached until shortly before `expires_at` and called with `{ refresh: true }`
+   * after a `401 token_expired`; in route mode it is called per request and sent as
+   * `Authorization`.
+   */
+  getClientToken?: TokenFetcher | undefined;
   /** Default profile (assistant configuration) for chats started under this provider. */
   profile?: string | undefined;
 }

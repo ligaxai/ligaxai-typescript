@@ -2,7 +2,7 @@
   "name": "nextjs-app-example",
   "version": "0.0.0",
   "private": true,
-  "description": "Minimal Next.js App Router app using @ligaxai/sdk/next",
+  "description": "Next.js App Router chat on a LigaX agent: createRunRoute + useLigaXChat",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -10,7 +10,10 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
+    "@ai-sdk/react": "4.0.152",
+    "@ligaxai/react": "workspace:*",
     "@ligaxai/sdk": "workspace:*",
+    "ai": "7.0.148",
     "next": "16.4.2",
     "react": "19.3.1",
     "react-dom": "19.3.1"

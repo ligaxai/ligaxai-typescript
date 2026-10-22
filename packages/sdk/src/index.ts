@@ -17,7 +17,10 @@ export type { RunBody, RunCreateBody, RunEventsParams, RunWaitOptions } from './
 export { ClientTokens } from './resources/client-tokens.js';
 export { Conversations } from './resources/conversations.js';
 export { ConnectSessions } from './resources/connect-sessions.js';
-export type { ConnectSessionGetParams } from './resources/connect-sessions.js';
+export type {
+  ConnectSessionGetParams,
+  ConnectSessionWaitParams,
+} from './resources/connect-sessions.js';
 export { EndUsers, EndUserConnections } from './resources/end-users.js';
 export type { ConversationGetParams } from './resources/conversations.js';
 export { Profiles } from './resources/profiles.js';

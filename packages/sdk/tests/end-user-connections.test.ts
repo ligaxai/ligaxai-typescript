@@ -7,7 +7,12 @@ import {
   type ConnectSession,
   type Fetch,
 } from '../src/index.js';
-import { ConflictError, ConnectAccountError, PermissionDeniedError } from '../src/errors.js';
+import {
+  ConflictError,
+  ConnectAccountError,
+  PermissionDeniedError,
+  TimeoutError,
+} from '../src/errors.js';
 import { json, scriptedFetch } from './helpers.js';
 
 const silent = { error() {}, warn() {}, info() {}, debug() {} };
@@ -144,6 +149,43 @@ describe('endUsers.connections', () => {
   });
 });
 
+describe('connectSessions.wait', () => {
+  it('polls at a fixed interval and resolves with a denied session', async () => {
+    const fetch = scriptedFetch([
+      json(polled()),
+      json(polled()),
+      json(polled({ status: 'denied', failure_code: 'access_denied' })),
+    ]);
+    const result = await client(fetch).connectSessions.wait('flow_ABCDEFGH', {
+      endUserId: 'user-42',
+      pollIntervalMs: 1,
+    });
+    expect(result.status).toBe('denied');
+    expect(fetch.calls).toHaveLength(3);
+    expect(fetch.calls[0]?.url).toBe(`${BASE}/connect_sessions/flow_ABCDEFGH?end_user_id=user-42`);
+  });
+
+  it('throws TimeoutError when still pending after timeoutMs', async () => {
+    const pending: Fetch = async () => json(polled());
+    const err = await client(pending)
+      .connectSessions.wait('flow_ABCDEFGH', { pollIntervalMs: 2, timeoutMs: 10 })
+      .catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(TimeoutError);
+    expect((err as TimeoutError).session.status).toBe('pending');
+  });
+
+  it('timeoutMs: null waits until the server expires the session', async () => {
+    let n = 0;
+    const later: Fetch = async () => json(polled(++n < 4 ? {} : { status: 'expired' }));
+    const result = await client(later).connectSessions.wait('flow_ABCDEFGH', {
+      pollIntervalMs: 1,
+      timeoutMs: null,
+    });
+    expect(result.status).toBe('expired');
+    expect(n).toBe(4);
+  });
+});
+
 describe('connectAccount', () => {
   it('sends the popup to the consent page, polls to succeeded and closes it', async () => {
     const fetch = scriptedFetch([
@@ -214,9 +256,8 @@ describe('connectAccount', () => {
       pollIntervalMs: 2,
       timeoutMs: 20,
     }).catch((e: unknown) => e);
-    expect(err).toBeInstanceOf(ConnectAccountError);
-    expect((err as ConnectAccountError).reason).toBe('timeout');
-    expect((err as ConnectAccountError).session?.status).toBe('pending');
+    expect(err).toBeInstanceOf(TimeoutError);
+    expect((err as TimeoutError).session.status).toBe('pending');
     expect(popup.closed).toBe(true);
   });
 

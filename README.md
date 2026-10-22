@@ -262,7 +262,7 @@ In the browser, with a client-token client (it acts for its own end user and pro
 the helper opens it before its first await:
 
 ```ts
-import { connectAccount, ConnectAccountError } from '@ligaxai/sdk';
+import { connectAccount, ConnectAccountError, TimeoutError } from '@ligaxai/sdk';
 
 button.onclick = async () => {
   try {
@@ -271,16 +271,19 @@ button.onclick = async () => {
     else showNotConnected(session.status); // 'denied' | 'failed' | 'expired'
   } catch (err) {
     if (err instanceof ConnectAccountError)
-      showHint(err.reason); // popup_blocked | popup_closed | timeout
+      showHint(err.reason); // popup_blocked | popup_closed
+    else if (err instanceof TimeoutError)
+      showHint('timeout'); // still pending after timeoutMs
     else throw err; // APIError: 409 end_user_connections_off, 422 connector_not_available / _not_connectable
   }
 };
 ```
 
 It opens a popup, creates a connect session, sends the popup to the provider's consent page, polls
-until the session leaves `pending` (every 2 s, up to 10 minutes: `pollIntervalMs`, `timeoutMs`,
-`signal`), closes the popup if it is still open and resolves with the final session. If your handler
-has to await something first, open the window at the top of the handler and pass it in:
+until the session leaves `pending` (every 2 s, up to 10 minutes: `pollIntervalMs`, `timeoutMs` —
+`null` waits for the server to expire the session — and `signal`), closes the popup if it is still
+open and resolves with the final session. If your handler has to await something first, open the
+window at the top of the handler and pass it in:
 `connectAccount(client, { connectorKey, popup: window.open('', 'ligax-connect', 'width=520,height=720') })`.
 In React, `useConnectAccount()` from `@ligaxai/react` wraps it with `state`
 (`idle | connecting | succeeded | failed`), `session` and `error`.
@@ -294,8 +297,10 @@ const session = await client.connectSessions.create({
   profile_id: 'prf_…',
   end_user: { id: user.id, name: user.name },
 });
-// open session.connect_url in a popup on the user's page, then:
-await client.connectSessions.get(session.id, { endUserId: user.id });
+// open session.connect_url in a popup on the user's page, then poll until it settles:
+const settled = await client.connectSessions.wait(session.id, { endUserId: user.id });
+// settled.status: 'succeeded' | 'denied' | 'failed' | 'expired' — outcomes, not errors;
+// TimeoutError if still pending after timeoutMs (default 10 min; null = until the server expires it)
 
 const { data } = await client.endUsers.connections.list(user.id); // their own accounts only
 await client.endUsers.connections.delete(user.id, data[0]!.id);

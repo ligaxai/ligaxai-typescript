@@ -1,5 +1,10 @@
-import type { APIPromise } from '../core/base-client.js';
-import type { ConnectSession, ConnectSessionCreateParams } from '../types.js';
+import { sleep, type APIPromise } from '../core/base-client.js';
+import { TimeoutError } from '../core/errors.js';
+import {
+  TERMINAL_CONNECT_SESSION_STATUSES,
+  type ConnectSession,
+  type ConnectSessionCreateParams,
+} from '../types.js';
 import { APIResource } from './resource.js';
 import { seg, type CallOptions, type MutationOptions } from './shared.js';
 
@@ -9,6 +14,16 @@ export interface ConnectSessionGetParams {
    * end user and may leave it out (naming another one answers `403 token_scope`).
    */
   endUserId?: string | undefined;
+}
+
+export interface ConnectSessionWaitParams extends ConnectSessionGetParams {
+  /** Fixed interval between polls. Default 2 s. */
+  pollIntervalMs?: number | undefined;
+  /**
+   * Throw `TimeoutError` once the session is still `pending` after this long. Default 10 minutes;
+   * `null` waits for as long as the session lives (the server expires it on its own).
+   */
+  timeoutMs?: number | null | undefined;
 }
 
 /**
@@ -44,5 +59,33 @@ export class ConnectSessions extends APIResource {
       ...options,
       query: { end_user_id: params.endUserId },
     });
+  }
+
+  /**
+   * Poll `get` at a fixed interval until the session leaves `pending`, and resolve with it — check
+   * `status`: only `succeeded` carries a `connection_id`; `denied`, `failed` and `expired` are
+   * outcomes, not errors. Throws `TimeoutError` if still `pending` after `timeoutMs`. Same contract
+   * as the Python SDK's `connect_sessions.wait`.
+   */
+  async wait(
+    id: string,
+    params: ConnectSessionWaitParams = {},
+    options: CallOptions = {},
+  ): Promise<ConnectSession> {
+    const { pollIntervalMs = 2_000, endUserId } = params;
+    const timeoutMs = params.timeoutMs === undefined ? 600_000 : params.timeoutMs;
+    const deadline = timeoutMs === null ? null : Date.now() + timeoutMs;
+    let session = await this.get(id, { endUserId }, options);
+    while (!TERMINAL_CONNECT_SESSION_STATUSES.includes(session.status)) {
+      if (deadline !== null && Date.now() >= deadline) {
+        throw new TimeoutError(
+          `Connect session ${session.id} was still ${session.status} after ${timeoutMs} ms.`,
+          session,
+        );
+      }
+      await sleep(pollIntervalMs, options.signal);
+      session = await this.get(id, { endUserId }, options);
+    }
+    return session;
   }
 }

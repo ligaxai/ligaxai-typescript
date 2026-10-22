@@ -140,18 +140,32 @@ export class BrowserEnvironmentError extends LigaXError {}
 export class WebhookVerificationError extends LigaXError {}
 
 /**
- * Raised by `connectAccount()` when the flow cannot finish: the browser blocked the popup, the user
- * closed it before finishing, or `timeoutMs` passed. `session` is the connect session as last seen
- * (absent when the popup was blocked before one was created). A `denied`/`failed`/`expired` session
- * is not an error — `connectAccount()` resolves with it.
+ * Raised by `connectAccount()` when the flow cannot finish in the browser: the popup was blocked, or
+ * the user closed it before finishing. `session` is the connect session as last seen (absent when
+ * the popup was blocked before one was created). A `denied`/`failed`/`expired` session is not an
+ * error — `connectAccount()` resolves with it.
  */
 export class ConnectAccountError extends LigaXError {
-  readonly reason: 'popup_blocked' | 'popup_closed' | 'timeout';
+  readonly reason: 'popup_blocked' | 'popup_closed';
   readonly session: ConnectSession | undefined;
 
   constructor(reason: ConnectAccountError['reason'], message: string, session?: ConnectSession) {
     super(message);
     this.reason = reason;
+    this.session = session;
+  }
+}
+
+/**
+ * A client-side wait ran out: `connectSessions.wait()` or `connectAccount()` saw the session still
+ * `pending` when its `timeoutMs` passed. Not a request timeout (that is `APITimeoutError`). The
+ * Python SDK raises its built-in `TimeoutError` at the same point. `session` is the last one seen.
+ */
+export class TimeoutError extends LigaXError {
+  readonly session: ConnectSession;
+
+  constructor(message: string, session: ConnectSession) {
+    super(message);
     this.session = session;
   }
 }

@@ -33,7 +33,7 @@ export interface UseConnectAccountResult {
   state: ConnectAccountState;
   /** The last session seen; check `status` and `failure_code` when `state` is `failed`. */
   session: ConnectSession | undefined;
-  /** Why it failed, when it threw: `ConnectAccountError` (popup blocked/closed, timeout) or an `APIError`. */
+  /** Why it failed, when it threw: `ConnectAccountError` (popup blocked/closed), `TimeoutError` or an `APIError`. */
   error: Error | undefined;
   /** Back to `idle`, abandoning a flow in progress (its popup is closed). */
   reset: () => void;

@@ -18,7 +18,10 @@ Repository-level changes (tooling, docs, CI). Package changelogs are written by 
   `ConnectionCreatedWebhookEvent` / `ConnectionDeletedWebhookEvent` in the `WebhookEvent` union
   (hand-written from the platform's emit code — the spec's `webhooks` section does not describe
   them); `connectAccount()` browser helper (popup opened inside the click, poll to a terminal status,
-  popup closed) and `ConnectAccountError` (`popup_blocked | popup_closed | timeout`).
+  popup closed), `ConnectAccountError` (`popup_blocked | popup_closed`), and
+  `client.connectSessions.wait()` — fixed-interval poll, `denied`/`failed`/`expired` returned as
+  outcomes, `TimeoutError` on the client-side timeout, `timeoutMs: null` to wait for the server's
+  expiry (the Python SDK's `connect_sessions.wait` contract).
 - **React** — `useConnectAccount()` (`idle | connecting | succeeded | failed`, `session`, `error`,
   `reset`), using the provider's direct-mode token when no client is passed.
 - **Widget** — `data-connectors="gmail,outlook"` (`connectors` attribute / `mount()` option /

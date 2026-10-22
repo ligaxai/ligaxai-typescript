@@ -1,5 +1,5 @@
 import { sleep } from '../core/base-client.js';
-import { ConnectAccountError } from '../core/errors.js';
+import { ConnectAccountError, TimeoutError } from '../core/errors.js';
 import type { ConnectSessions } from '../resources/connect-sessions.js';
 import type { CallOptions } from '../resources/shared.js';
 import {
@@ -29,8 +29,11 @@ export interface ConnectAccountOptions {
   popup?: ConnectPopup | Window | null | undefined;
   /** How often to ask how the session stands. Default 2 s. */
   pollIntervalMs?: number | undefined;
-  /** Give up (and close the popup) after this long. Default 10 minutes. */
-  timeoutMs?: number | undefined;
+  /**
+   * Give up (and close the popup) with `TimeoutError` after this long. Default 10 minutes; `null`
+   * waits for as long as the session lives — the server expires it on its own.
+   */
+  timeoutMs?: number | null | undefined;
   /** Abort the flow; the popup is closed and the promise rejects. */
   signal?: AbortSignal | undefined;
   /** `window.open` features for the popup the helper opens. Default `width=520,height=720`. */
@@ -104,7 +107,8 @@ export async function connectAccount(
   const { signal } = options;
   const call: CallOptions = signal ? { signal } : {};
   const interval = options.pollIntervalMs ?? DEFAULT_POLL_MS;
-  const deadline = Date.now() + (options.timeoutMs ?? DEFAULT_TIMEOUT_MS);
+  const timeoutMs = options.timeoutMs === undefined ? DEFAULT_TIMEOUT_MS : options.timeoutMs;
+  const deadline = timeoutMs === null ? null : Date.now() + timeoutMs;
 
   try {
     const body: ConnectSessionCreateParams = { connector_key: options.connectorKey };
@@ -117,8 +121,11 @@ export async function connectAccount(
     let session = created;
     let pollsSinceClose = 0;
     for (;;) {
-      if (Date.now() >= deadline) {
-        throw new ConnectAccountError('timeout', 'The account was not connected in time.', session);
+      if (deadline !== null && Date.now() >= deadline) {
+        throw new TimeoutError(
+          `Connect session ${session.id} was still ${session.status} after ${timeoutMs} ms.`,
+          session,
+        );
       }
       await sleep(interval, signal);
       const polled = await client.connectSessions.get(created.id, {}, call);

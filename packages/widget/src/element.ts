@@ -3,6 +3,7 @@ import {
   APIError,
   ConnectAccountError,
   LigaX,
+  TimeoutError,
   TextAssembler,
   cachedTokenProvider,
   connectAccount,
@@ -605,9 +606,9 @@ function connectFailure(
   if (session) return `Could not connect ${name}. Please try again.`;
   if (error instanceof ConnectAccountError) {
     if (error.reason === 'popup_blocked') return `Allow pop-ups for this site to connect ${name}.`;
-    if (error.reason === 'popup_closed') return `${name} was not connected.`;
-    return `Connecting ${name} took too long. Please try again.`;
+    return `${name} was not connected.`;
   }
+  if (error instanceof TimeoutError) return `Connecting ${name} took too long. Please try again.`;
   if (error instanceof APIError && error.status === 422) {
     return `${name} cannot be connected here.`;
   }

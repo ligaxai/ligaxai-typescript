@@ -6,6 +6,7 @@ import { ClientTokens } from './resources/client-tokens.js';
 import { ConnectSessions } from './resources/connect-sessions.js';
 import { Conversations } from './resources/conversations.js';
 import { EndUsers } from './resources/end-users.js';
+import { Files } from './resources/files.js';
 import { Keys } from './resources/keys.js';
 import { Profiles } from './resources/profiles.js';
 import { Runs } from './resources/runs.js';
@@ -80,6 +81,7 @@ export class LigaX extends BaseClient {
   readonly conversations: Conversations;
   readonly connectSessions: ConnectSessions;
   readonly endUsers: EndUsers;
+  readonly files: Files;
   readonly profiles: Profiles;
   readonly keys: Keys;
   readonly usage: Usage;
@@ -123,6 +125,7 @@ export class LigaX extends BaseClient {
     this.conversations = new Conversations(this);
     this.connectSessions = new ConnectSessions(this);
     this.endUsers = new EndUsers(this);
+    this.files = new Files(this);
     this.profiles = new Profiles(this);
     this.keys = new Keys(this);
     this.usage = new Usage(this);

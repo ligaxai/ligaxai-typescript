@@ -23,6 +23,8 @@ export interface LigaXChatProps {
   open?: boolean | undefined;
   /** Connector keys the visitor may connect their own account for, e.g. `['gmail', 'outlook']`. */
   connectors?: readonly string[] | undefined;
+  /** Show a file attach button; files go with the visitor's next message. */
+  files?: boolean | undefined;
   className?: string | undefined;
   /** Theme with custom properties, e.g. `{ '--ligax-accent': '#7c3aed' }`. */
   style?: (CSSProperties & Record<`--${string}`, string>) | undefined;
@@ -48,6 +50,7 @@ export function LigaXChat(props: LigaXChatProps) {
     position: props.position,
     open: props.open ? '' : undefined,
     connectors: props.connectors?.length ? props.connectors.join(',') : undefined,
+    files: props.files ? '' : undefined,
     className: props.className,
     style: props.style,
   });

@@ -31,12 +31,13 @@ string is a token listed in [`TEMPLATE-TOKENS.md`](./TEMPLATE-TOKENS.md) and rew
 5. **Errors** — `LigaXError` → `APIConnectionError` / `APITimeoutError` / `APIError` subclasses by
    status (incl. `PaymentRequiredError` with `resetsAt`), with `status`, `requestId`, `code`,
    `type`, `param`. Never retried: 402, 403, 422.
-6. **Agent API v0.1 resources** (spec `public-api-spec-v0.3.0`) — `runs` (`create`, `stream`,
+6. **Agent API v0.1 resources** (spec `public-api-spec-v0.6.0`) — `runs` (`create`, `stream`,
    `wait`, `get`, `events`, `followEvents`, `cancel`, `resolveInterrupt`), `conversations.get`,
    `profiles.list/get`, `keys.self`, `usage.get`, `webhooks` (`create/list/get/update/delete/ test`,
    scope `webhooks:manage`), `clientTokens.create`, `connectSessions.create/get` and
    `endUsers.connections.list/delete` (end users' own accounts; `connectAccount()` drives the
-   popup-and-poll flow in a browser). `apiKey` may be a token provider (refreshed once on
+   popup-and-poll flow in a browser), `files.create/get/delete` (multipart upload, 25 MB guard; ids
+   go in runs' `attachments`). `apiKey` may be a token provider (refreshed once on
    `401 token_expired`; `cachedTokenProvider`); in a browser only `lgx_ct_`/`lgx_pk_` keys and
    providers are accepted without `dangerouslyAllowBrowser`. `RunStream` over the LAE event stream
    with `TextAssembler` (offset-addressed, replay-safe text).
@@ -68,13 +69,13 @@ ligaxai-typescript/
 ├── conformance/           cases/*.json · sse/*.txt (+ .expected.json) · README.md
 ├── docs/                  ai-stack · SUMMARY · STATUS · DECISIONS · TEMPLATE-TOKENS · .last-tracked-commit
 ├── examples/nextjs-app/   App Router chat: createRunRoute + useLigaXChat
-├── openapi/               openapi.json — the Agent API contract (public-api-spec-v0.3.0)
+├── openapi/               openapi.json — the Agent API contract (public-api-spec-v0.6.0)
 ├── packages/
 │   ├── sdk/               src/{client,index,types,errors,webhooks,next,ai-sdk,version}.ts, src/core/*, src/lib/{lae,run-stream,text-assembler}.ts, src/resources/*, src/generated/*
 │   ├── react/             src/{provider.tsx,chat.ts,connect.ts,index.ts}
 │   └── widget/            src/{index,global,element,session,markdown,styles,react}.ts
 ├── scripts/               bootstrap.mjs · gen-types.mjs · sync-spec.mjs
-├── SPEC_VERSION           public-api-spec-v0.3.0
+├── SPEC_VERSION           public-api-spec-v0.6.0
 └── package.json · pnpm-workspace.yaml · tsconfig.base.json · vitest.config.ts · CLAUDE.md · README.md · SECURITY.md · LICENSE
 ```
 

@@ -50,6 +50,11 @@ export interface WidgetOptions {
    * can connect their own accounts" switch; when it is off the area hides itself.
    */
   connectors?: readonly string[] | string | undefined;
+  /**
+   * Show a paperclip button: the visitor attaches files (≤ 25 MB each, up to 10) to their next
+   * message. Each is uploaded with the widget's client token, so it belongs to that visitor.
+   */
+  files?: boolean | undefined;
   /** Element or selector to append to. Default `document.body`. */
   container?: HTMLElement | string | undefined;
   /** Inject a `fetch` (tests, proxies). */
@@ -78,6 +83,7 @@ export function mount(options: WidgetOptions): LigaXChatElement {
   };
   for (const [name, value] of Object.entries(attrs)) if (value) el.setAttribute(name, value);
   if (options.open) el.setAttribute('open', '');
+  if (options.files) el.setAttribute('files', '');
   resolveContainer(options.container).appendChild(el);
   return el;
 }
@@ -91,8 +97,8 @@ export function mount(options: WidgetOptions): LigaXChatElement {
  * ```
  *
  * or `data-token-url="/api/ligax-token"` for signed-in users. Also read: `data-base-url`,
- * `data-title`, `data-greeting`, `data-placeholder`, `data-position`, `data-open` and
- * `data-connectors` (e.g. `"gmail,outlook"`).
+ * `data-title`, `data-greeting`, `data-placeholder`, `data-position`, `data-open`,
+ * `data-connectors` (e.g. `"gmail,outlook"`) and `data-files="true"` (a file attach button).
  */
 export function autoInit(
   doc: Document = document,
@@ -107,6 +113,7 @@ export function autoInit(
   if (!tokenUrl && !(publishableKey && profileId)) return Promise.resolve(undefined);
   const position = data('position');
   const open = data('open');
+  const files = data('files');
   const run = () =>
     mount({
       publishableKey,
@@ -119,6 +126,7 @@ export function autoInit(
       position: position === 'bottom-left' ? 'bottom-left' : 'bottom-right',
       open: open !== undefined && open !== 'false',
       connectors: data('connectors'),
+      files: files !== undefined && files !== 'false',
       container: doc.body,
     });
   if (doc.readyState === 'loading') {

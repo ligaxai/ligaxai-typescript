@@ -27,18 +27,19 @@ Pin a version in production (`@ligaxai/widget@x.y.z/dist/widget.global.js`) and 
 hash if you serve it from a CDN. The script defines `window.LigaXWidget` (`mount`, `define`,
 `autoInit`).
 
-| Attribute              | Meaning                                                                                           |
-| ---------------------- | ------------------------------------------------------------------------------------------------- |
-| `data-publishable-key` | `lgx_pk_…`. Opens an anonymous session per visitor (`POST /widget/sessions`).                     |
-| `data-profile-id`      | `prf_…`. Required with a publishable key; optional with a token URL that answers `profile_id`.    |
-| `data-token-url`       | Your endpoint answering `{ token, expires_at, profile_id }`; called with the page's cookies.      |
-| `data-base-url`        | API base URL for a non-production platform. Default `https://enterprise.ligax.ai/api/public/v1`.  |
-| `data-title`           | Panel heading. Default "Chat".                                                                    |
-| `data-greeting`        | A first message shown locally (not sent to the agent).                                            |
-| `data-placeholder`     | Composer placeholder.                                                                             |
-| `data-position`        | `bottom-right` (default) or `bottom-left`.                                                        |
-| `data-open`            | Start with the panel open.                                                                        |
-| `data-connectors`      | Comma-separated connector keys (`gmail,outlook`): a "Connect your account" area, one button each. |
+| Attribute              | Meaning                                                                                                                 |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `data-publishable-key` | `lgx_pk_…`. Opens an anonymous session per visitor (`POST /widget/sessions`).                                           |
+| `data-profile-id`      | `prf_…`. Required with a publishable key; optional with a token URL that answers `profile_id`.                          |
+| `data-token-url`       | Your endpoint answering `{ token, expires_at, profile_id }`; called with the page's cookies.                            |
+| `data-base-url`        | API base URL for a non-production platform. Default `https://enterprise.ligax.ai/api/public/v1`.                        |
+| `data-title`           | Panel heading. Default "Chat".                                                                                          |
+| `data-greeting`        | A first message shown locally (not sent to the agent).                                                                  |
+| `data-placeholder`     | Composer placeholder.                                                                                                   |
+| `data-position`        | `bottom-right` (default) or `bottom-left`.                                                                              |
+| `data-open`            | Start with the panel open.                                                                                              |
+| `data-connectors`      | Comma-separated connector keys (`gmail,outlook`): a "Connect your account" area, one button each. Signed-in users only. |
+| `data-files`           | `"true"` shows a paperclip button: the user attaches files to their next message. Signed-in users only.                 |
 
 ## Before it works
 
@@ -90,9 +91,15 @@ register the element and write it in markup: `define()`, then
   and forgets on reload.
 - **Tokens.** The client token is cached until shortly before it expires and refreshed once when the
   API answers `401 token_expired`.
-- **Approvals.** When a run stops with `requires_action`, a card shows the prompt with Approve /
-  Reject (a form or question that the widget cannot render is offered as Dismiss); the decision is
-  posted to `POST /runs/{id}/interrupts/{interrupt_id}` and the run is followed to its end.
+- **Anonymous visitors chat only.** On a website key (`data-publishable-key` without
+  `data-token-url`) the API gives a visitor no account connections, no uploads and no approvals,
+  because anyone can load your page and claim any visitor id. The widget hides the connect area and
+  the paperclip, and when a run needs an approval it shows a notice that your team must answer it
+  (from your server, with a secret key). Use `data-token-url` for signed-in users to get the rest.
+- **Approvals.** For a signed-in user, when a run stops with `requires_action`, a card shows the
+  prompt with Approve / Reject (a form or question that the widget cannot render is offered as
+  Dismiss); the decision is posted to `POST /runs/{id}/interrupts/{interrupt_id}` and the run is
+  followed to its end.
 - **Errors.** 401, 402, 403 and 429 become short, plain messages — the API's error body is never
   shown to a visitor.
 - **Safe rendering.** Answers are built as DOM nodes from a tiny markdown subset — paragraphs,
@@ -108,6 +115,13 @@ register the element and write it in markup: `define()`, then
   agent; if the switch is off (`409 end_user_connections_off`) the area hides itself. A blocked
   popup, a declined consent or a connector that cannot be connected here each get a one-line
   message.
+- **Files.** With `data-files="true"` (or `files: true` in `mount()` / `<LigaXChat files>`), a
+  paperclip button opens the file picker. Each file (up to 25 MB, 10 per message) is uploaded at
+  once with `POST /files` using the widget's own client token — so it belongs to that visitor and
+  only their runs can attach it — and shown as a chip with a remove button. Send waits for uploads
+  to finish, then the ids go with the next message as `attachments` and the chips clear. A file over
+  25 MB is refused before upload; whether a type can be read depends on the profile's model. Names
+  are shown with `textContent` only.
 - **Accessibility.** The launcher is a labelled button with `aria-expanded`; opening moves focus to
   the composer, `Esc` closes and returns focus; Enter sends, Shift+Enter adds a line; the log is an
   `aria-live` region and a streaming answer is `aria-busy` until it finishes.
@@ -132,5 +146,5 @@ under `prefers-color-scheme: dark`.
 ## Bundle size
 
 `dist/widget.global.js` (IIFE, everything inlined including the SDK client and the SSE parser):
-**about 42 KB minified, about 15 KB gzip** (≈ 13 KB brotli) at this release. The ESM build is a few
+**about 54 KB minified, about 18 KB gzip** (≈ 16 KB brotli) at this release. The ESM build is a few
 KB on top of `@ligaxai/sdk`, which your bundler shares with the rest of your app.

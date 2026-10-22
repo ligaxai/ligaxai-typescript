@@ -46,6 +46,13 @@ alongside every substantive change (see "Living docs" in [`CLAUDE.md`](../CLAUDE
   popup-and-poll helper; `useConnectAccount()`; widget `data-connectors`. `pnpm check` green. Not
   yet run against a live platform.
 
+- **Files and protocols (2026-10-22, `feat/files-and-protocols`, unpushed)** — platform Phases 7–8
+  on the SDK side: spec `public-api-spec-v0.5.0`; `files.create/get/delete` (multipart, client-side
+  25 MB guard, `FileTooLargeError`); `attachments` on runs; `webhooks.create` idempotent replay
+  documented and tested; widget `data-files` attach button; README sections for files and for
+  MCP/A2A clients (no SDK surface — clients connect directly). `pnpm check` green. Not yet run
+  against a live platform.
+
 ## Unplanned Changes
 
 _None tracked yet._

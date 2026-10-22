@@ -23,6 +23,8 @@ export type {
 } from './resources/connect-sessions.js';
 export { EndUsers, EndUserConnections } from './resources/end-users.js';
 export type { ConversationGetParams } from './resources/conversations.js';
+export { Files, MAX_FILE_BYTES } from './resources/files.js';
+export type { FileCreateParams, FileUpload } from './resources/files.js';
 export { Profiles } from './resources/profiles.js';
 export { Keys } from './resources/keys.js';
 export { Usage } from './resources/usage.js';
@@ -66,6 +68,8 @@ export type {
   EndUserConnectionList,
   ErrorBody,
   ErrorType,
+  FileDeleted,
+  FileObject,
   InterruptDecision,
   InterruptDecisionParams,
   Profile,

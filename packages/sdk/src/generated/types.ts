@@ -181,8 +181,163 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/webhooks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List webhook endpoints (scope webhooks:manage) */
+        get: operations["webhooks.list"];
+        put?: never;
+        /** Create a webhook endpoint; the signing secret is returned once */
+        post: operations["webhooks.create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/webhooks/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read one webhook endpoint */
+        get: operations["webhooks.get"];
+        put?: never;
+        post?: never;
+        /** Delete a webhook endpoint (unsubscribe) */
+        delete: operations["webhooks.delete"];
+        options?: never;
+        head?: never;
+        /** Change, enable or disable a webhook endpoint */
+        patch: operations["webhooks.update"];
+        trace?: never;
+    };
+    "/webhooks/{id}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send a webhook.test event now and report the delivery */
+        post: operations["webhooks.test"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 };
-export type webhooks = Record<string, never>;
+export type webhooks = {
+    "api_key.limit_reached": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * An API key reached its spend limit for the window
+         * @description Signed per Standard Webhooks: verify webhook-signature over webhook-id.webhook-timestamp.body with the endpoint secret before trusting the body. Answer 2xx within 15 s; anything else is retried.
+         */
+        post: operations["events.api_key.limit_reached"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "run.canceled": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * A run was canceled
+         * @description Signed per Standard Webhooks: verify webhook-signature over webhook-id.webhook-timestamp.body with the endpoint secret before trusting the body. Answer 2xx within 15 s; anything else is retried.
+         */
+        post: operations["events.run.canceled"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "run.completed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * A run finished with an answer
+         * @description Signed per Standard Webhooks: verify webhook-signature over webhook-id.webhook-timestamp.body with the endpoint secret before trusting the body. Answer 2xx within 15 s; anything else is retried.
+         */
+        post: operations["events.run.completed"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "run.failed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * A run failed
+         * @description Signed per Standard Webhooks: verify webhook-signature over webhook-id.webhook-timestamp.body with the endpoint secret before trusting the body. Answer 2xx within 15 s; anything else is retried.
+         */
+        post: operations["events.run.failed"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "run.requires_action": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * A run is waiting for an approval or an answer
+         * @description Signed per Standard Webhooks: verify webhook-signature over webhook-id.webhook-timestamp.body with the endpoint secret before trusting the body. Answer 2xx within 15 s; anything else is retried.
+         */
+        post: operations["events.run.requires_action"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+};
 export type components = {
     schemas: {
         Profile: {
@@ -266,6 +421,21 @@ export type components = {
         };
         /** @enum {string} */
         RunStatus: "queued" | "running" | "requires_action" | "completed" | "failed" | "canceled" | "expired";
+        WebhookEndpoint: {
+            created_at: string;
+            description: string;
+            disabled_reason: ("manual" | "failing") | null;
+            event_types: ("run.completed" | "run.failed" | "run.canceled" | "run.requires_action" | "api_key.limit_reached")[];
+            id: string;
+            /** @constant */
+            object: "webhook_endpoint";
+            profile_ids: string[];
+            secret_hint: string;
+            /** @enum {string} */
+            status: "active" | "disabled";
+            updated_at: string;
+            url: string;
+        };
     };
     responses: never;
     parameters: never;
@@ -277,6 +447,7 @@ export type SchemaProfile = components['schemas']['Profile'];
 export type SchemaRun = components['schemas']['Run'];
 export type SchemaRunEvent = components['schemas']['RunEvent'];
 export type SchemaRunStatus = components['schemas']['RunStatus'];
+export type SchemaWebhookEndpoint = components['schemas']['WebhookEndpoint'];
 export type $defs = Record<string, never>;
 export interface operations {
     "conversations.get": {
@@ -1511,6 +1682,865 @@ export interface operations {
                         };
                     };
                 };
+            };
+        };
+    };
+    "webhooks.list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Endpoints */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["WebhookEndpoint"][];
+                        has_more: boolean;
+                        /** @constant */
+                        object: "list";
+                    };
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: {
+                            /** @description Stable, machine-readable reason, e.g. key_limit_reached. */
+                            code: string;
+                            /** @description A sentence written for the developer. */
+                            message: string;
+                            param?: string;
+                            request_id: string;
+                            /** @enum {string} */
+                            type: "invalid_request_error" | "authentication_error" | "permission_error" | "not_found_error" | "rate_limit_error" | "billing_error" | "conflict_error" | "api_error";
+                        };
+                    };
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: {
+                            /** @description Stable, machine-readable reason, e.g. key_limit_reached. */
+                            code: string;
+                            /** @description A sentence written for the developer. */
+                            message: string;
+                            param?: string;
+                            request_id: string;
+                            /** @enum {string} */
+                            type: "invalid_request_error" | "authentication_error" | "permission_error" | "not_found_error" | "rate_limit_error" | "billing_error" | "conflict_error" | "api_error";
+                        };
+                    };
+                };
+            };
+        };
+    };
+    "webhooks.create": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    description?: string;
+                    event_types: ("run.completed" | "run.failed" | "run.canceled" | "run.requires_action" | "api_key.limit_reached")[];
+                    profile_ids?: string[];
+                    url: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The endpoint and its secret */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        created_at: string;
+                        description: string;
+                        disabled_reason: ("manual" | "failing") | null;
+                        event_types: ("run.completed" | "run.failed" | "run.canceled" | "run.requires_action" | "api_key.limit_reached")[];
+                        id: string;
+                        /** @constant */
+                        object: "webhook_endpoint";
+                        profile_ids: string[];
+                        /** @description The signing secret (`whsec_…`). Returned once; store it now. */
+                        secret: string;
+                        secret_hint: string;
+                        /** @enum {string} */
+                        status: "active" | "disabled";
+                        updated_at: string;
+                        url: string;
+                    };
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: {
+                            /** @description Stable, machine-readable reason, e.g. key_limit_reached. */
+                            code: string;
+                            /** @description A sentence written for the developer. */
+                            message: string;
+                            param?: string;
+                            request_id: string;
+                            /** @enum {string} */
+                            type: "invalid_request_error" | "authentication_error" | "permission_error" | "not_found_error" | "rate_limit_error" | "billing_error" | "conflict_error" | "api_error";
+                        };
+                    };
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: {
+                            /** @description Stable, machine-readable reason, e.g. key_limit_reached. */
+                            code: string;
+                            /** @description A sentence written for the developer. */
+                            message: string;
+                            param?: string;
+                            request_id: string;
+                            /** @enum {string} */
+                            type: "invalid_request_error" | "authentication_error" | "permission_error" | "not_found_error" | "rate_limit_error" | "billing_error" | "conflict_error" | "api_error";
+                        };
+                    };
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: {
+                            /** @description Stable, machine-readable reason, e.g. key_limit_reached. */
+                            code: string;
+                            /** @description A sentence written for the developer. */
+                            message: string;
+                            param?: string;
+                            request_id: string;
+                            /** @enum {string} */
+                            type: "invalid_request_error" | "authentication_error" | "permission_error" | "not_found_error" | "rate_limit_error" | "billing_error" | "conflict_error" | "api_error";
+                        };
+                    };
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: {
+                            /** @description Stable, machine-readable reason, e.g. key_limit_reached. */
+                            code: string;
+                            /** @description A sentence written for the developer. */
+                            message: string;
+                            param?: string;
+                            request_id: string;
+                            /** @enum {string} */
+                            type: "invalid_request_error" | "authentication_error" | "permission_error" | "not_found_error" | "rate_limit_error" | "billing_error" | "conflict_error" | "api_error";
+                        };
+                    };
+                };
+            };
+            /** @description Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: {
+                            /** @description Stable, machine-readable reason, e.g. key_limit_reached. */
+                            code: string;
+                            /** @description A sentence written for the developer. */
+                            message: string;
+                            param?: string;
+                            request_id: string;
+                            /** @enum {string} */
+                            type: "invalid_request_error" | "authentication_error" | "permission_error" | "not_found_error" | "rate_limit_error" | "billing_error" | "conflict_error" | "api_error";
+                        };
+                    };
+                };
+            };
+        };
+    };
+    "webhooks.get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The endpoint */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        created_at: string;
+                        description: string;
+                        disabled_reason: ("manual" | "failing") | null;
+                        event_types: ("run.completed" | "run.failed" | "run.canceled" | "run.requires_action" | "api_key.limit_reached")[];
+                        id: string;
+                        /** @constant */
+                        object: "webhook_endpoint";
+                        profile_ids: string[];
+                        secret_hint: string;
+                        /** @enum {string} */
+                        status: "active" | "disabled";
+                        updated_at: string;
+                        url: string;
+                    };
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: {
+                            /** @description Stable, machine-readable reason, e.g. key_limit_reached. */
+                            code: string;
+                            /** @description A sentence written for the developer. */
+                            message: string;
+                            param?: string;
+                            request_id: string;
+                            /** @enum {string} */
+                            type: "invalid_request_error" | "authentication_error" | "permission_error" | "not_found_error" | "rate_limit_error" | "billing_error" | "conflict_error" | "api_error";
+                        };
+                    };
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: {
+                            /** @description Stable, machine-readable reason, e.g. key_limit_reached. */
+                            code: string;
+                            /** @description A sentence written for the developer. */
+                            message: string;
+                            param?: string;
+                            request_id: string;
+                            /** @enum {string} */
+                            type: "invalid_request_error" | "authentication_error" | "permission_error" | "not_found_error" | "rate_limit_error" | "billing_error" | "conflict_error" | "api_error";
+                        };
+                    };
+                };
+            };
+            /** @description Error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: {
+                            /** @description Stable, machine-readable reason, e.g. key_limit_reached. */
+                            code: string;
+                            /** @description A sentence written for the developer. */
+                            message: string;
+                            param?: string;
+                            request_id: string;
+                            /** @enum {string} */
+                            type: "invalid_request_error" | "authentication_error" | "permission_error" | "not_found_error" | "rate_limit_error" | "billing_error" | "conflict_error" | "api_error";
+                        };
+                    };
+                };
+            };
+        };
+    };
+    "webhooks.delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        deleted: true;
+                        id: string;
+                        /** @constant */
+                        object: "webhook_endpoint";
+                    };
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: {
+                            /** @description Stable, machine-readable reason, e.g. key_limit_reached. */
+                            code: string;
+                            /** @description A sentence written for the developer. */
+                            message: string;
+                            param?: string;
+                            request_id: string;
+                            /** @enum {string} */
+                            type: "invalid_request_error" | "authentication_error" | "permission_error" | "not_found_error" | "rate_limit_error" | "billing_error" | "conflict_error" | "api_error";
+                        };
+                    };
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: {
+                            /** @description Stable, machine-readable reason, e.g. key_limit_reached. */
+                            code: string;
+                            /** @description A sentence written for the developer. */
+                            message: string;
+                            param?: string;
+                            request_id: string;
+                            /** @enum {string} */
+                            type: "invalid_request_error" | "authentication_error" | "permission_error" | "not_found_error" | "rate_limit_error" | "billing_error" | "conflict_error" | "api_error";
+                        };
+                    };
+                };
+            };
+            /** @description Error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: {
+                            /** @description Stable, machine-readable reason, e.g. key_limit_reached. */
+                            code: string;
+                            /** @description A sentence written for the developer. */
+                            message: string;
+                            param?: string;
+                            request_id: string;
+                            /** @enum {string} */
+                            type: "invalid_request_error" | "authentication_error" | "permission_error" | "not_found_error" | "rate_limit_error" | "billing_error" | "conflict_error" | "api_error";
+                        };
+                    };
+                };
+            };
+        };
+    };
+    "webhooks.update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    description?: string;
+                    event_types?: ("run.completed" | "run.failed" | "run.canceled" | "run.requires_action" | "api_key.limit_reached")[];
+                    profile_ids?: string[];
+                    /** @enum {string} */
+                    status?: "active" | "disabled";
+                    url?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The endpoint */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        created_at: string;
+                        description: string;
+                        disabled_reason: ("manual" | "failing") | null;
+                        event_types: ("run.completed" | "run.failed" | "run.canceled" | "run.requires_action" | "api_key.limit_reached")[];
+                        id: string;
+                        /** @constant */
+                        object: "webhook_endpoint";
+                        profile_ids: string[];
+                        secret_hint: string;
+                        /** @enum {string} */
+                        status: "active" | "disabled";
+                        updated_at: string;
+                        url: string;
+                    };
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: {
+                            /** @description Stable, machine-readable reason, e.g. key_limit_reached. */
+                            code: string;
+                            /** @description A sentence written for the developer. */
+                            message: string;
+                            param?: string;
+                            request_id: string;
+                            /** @enum {string} */
+                            type: "invalid_request_error" | "authentication_error" | "permission_error" | "not_found_error" | "rate_limit_error" | "billing_error" | "conflict_error" | "api_error";
+                        };
+                    };
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: {
+                            /** @description Stable, machine-readable reason, e.g. key_limit_reached. */
+                            code: string;
+                            /** @description A sentence written for the developer. */
+                            message: string;
+                            param?: string;
+                            request_id: string;
+                            /** @enum {string} */
+                            type: "invalid_request_error" | "authentication_error" | "permission_error" | "not_found_error" | "rate_limit_error" | "billing_error" | "conflict_error" | "api_error";
+                        };
+                    };
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: {
+                            /** @description Stable, machine-readable reason, e.g. key_limit_reached. */
+                            code: string;
+                            /** @description A sentence written for the developer. */
+                            message: string;
+                            param?: string;
+                            request_id: string;
+                            /** @enum {string} */
+                            type: "invalid_request_error" | "authentication_error" | "permission_error" | "not_found_error" | "rate_limit_error" | "billing_error" | "conflict_error" | "api_error";
+                        };
+                    };
+                };
+            };
+            /** @description Error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: {
+                            /** @description Stable, machine-readable reason, e.g. key_limit_reached. */
+                            code: string;
+                            /** @description A sentence written for the developer. */
+                            message: string;
+                            param?: string;
+                            request_id: string;
+                            /** @enum {string} */
+                            type: "invalid_request_error" | "authentication_error" | "permission_error" | "not_found_error" | "rate_limit_error" | "billing_error" | "conflict_error" | "api_error";
+                        };
+                    };
+                };
+            };
+            /** @description Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: {
+                            /** @description Stable, machine-readable reason, e.g. key_limit_reached. */
+                            code: string;
+                            /** @description A sentence written for the developer. */
+                            message: string;
+                            param?: string;
+                            request_id: string;
+                            /** @enum {string} */
+                            type: "invalid_request_error" | "authentication_error" | "permission_error" | "not_found_error" | "rate_limit_error" | "billing_error" | "conflict_error" | "api_error";
+                        };
+                    };
+                };
+            };
+        };
+    };
+    "webhooks.test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The delivery */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        attempt: number;
+                        created_at: string;
+                        delivered_at: string | null;
+                        event_id: string;
+                        event_type: string;
+                        id: string;
+                        last_attempt_at: string | null;
+                        last_error: string | null;
+                        last_status_code: number | null;
+                        next_attempt_at: string | null;
+                        /** @constant */
+                        object: "webhook_delivery";
+                        /** @enum {string} */
+                        status: "pending" | "succeeded" | "failed";
+                    };
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: {
+                            /** @description Stable, machine-readable reason, e.g. key_limit_reached. */
+                            code: string;
+                            /** @description A sentence written for the developer. */
+                            message: string;
+                            param?: string;
+                            request_id: string;
+                            /** @enum {string} */
+                            type: "invalid_request_error" | "authentication_error" | "permission_error" | "not_found_error" | "rate_limit_error" | "billing_error" | "conflict_error" | "api_error";
+                        };
+                    };
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: {
+                            /** @description Stable, machine-readable reason, e.g. key_limit_reached. */
+                            code: string;
+                            /** @description A sentence written for the developer. */
+                            message: string;
+                            param?: string;
+                            request_id: string;
+                            /** @enum {string} */
+                            type: "invalid_request_error" | "authentication_error" | "permission_error" | "not_found_error" | "rate_limit_error" | "billing_error" | "conflict_error" | "api_error";
+                        };
+                    };
+                };
+            };
+            /** @description Error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: {
+                            /** @description Stable, machine-readable reason, e.g. key_limit_reached. */
+                            code: string;
+                            /** @description A sentence written for the developer. */
+                            message: string;
+                            param?: string;
+                            request_id: string;
+                            /** @enum {string} */
+                            type: "invalid_request_error" | "authentication_error" | "permission_error" | "not_found_error" | "rate_limit_error" | "billing_error" | "conflict_error" | "api_error";
+                        };
+                    };
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: {
+                            /** @description Stable, machine-readable reason, e.g. key_limit_reached. */
+                            code: string;
+                            /** @description A sentence written for the developer. */
+                            message: string;
+                            param?: string;
+                            request_id: string;
+                            /** @enum {string} */
+                            type: "invalid_request_error" | "authentication_error" | "permission_error" | "not_found_error" | "rate_limit_error" | "billing_error" | "conflict_error" | "api_error";
+                        };
+                    };
+                };
+            };
+        };
+    };
+    "events.api_key.limit_reached": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    data: {
+                        hint: string;
+                        id: string;
+                        limit_reset: string;
+                        limit_usd: string | null;
+                        name: string;
+                        /** @constant */
+                        object: "api_key";
+                        resets_at: string | null;
+                        spent_usd: string | null;
+                    };
+                    timestamp: string;
+                    /** @constant */
+                    type: "api_key.limit_reached";
+                };
+            };
+        };
+        responses: {
+            /** @description Accepted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    "events.run.canceled": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    data: {
+                        conversation_id: string | null;
+                        end_user_id: string | null;
+                        error_code?: string;
+                        id: string;
+                        interrupt_id?: string;
+                        interrupt_kind?: string;
+                        metadata: {
+                            [key: string]: string;
+                        };
+                        /** @constant */
+                        object: "run";
+                        profile_id: string | null;
+                        status: string;
+                    };
+                    timestamp: string;
+                    /** @enum {string} */
+                    type: "run.completed" | "run.failed" | "run.canceled" | "run.requires_action";
+                };
+            };
+        };
+        responses: {
+            /** @description Accepted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    "events.run.completed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    data: {
+                        conversation_id: string | null;
+                        end_user_id: string | null;
+                        error_code?: string;
+                        id: string;
+                        interrupt_id?: string;
+                        interrupt_kind?: string;
+                        metadata: {
+                            [key: string]: string;
+                        };
+                        /** @constant */
+                        object: "run";
+                        profile_id: string | null;
+                        status: string;
+                    };
+                    timestamp: string;
+                    /** @enum {string} */
+                    type: "run.completed" | "run.failed" | "run.canceled" | "run.requires_action";
+                };
+            };
+        };
+        responses: {
+            /** @description Accepted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    "events.run.failed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    data: {
+                        conversation_id: string | null;
+                        end_user_id: string | null;
+                        error_code?: string;
+                        id: string;
+                        interrupt_id?: string;
+                        interrupt_kind?: string;
+                        metadata: {
+                            [key: string]: string;
+                        };
+                        /** @constant */
+                        object: "run";
+                        profile_id: string | null;
+                        status: string;
+                    };
+                    timestamp: string;
+                    /** @enum {string} */
+                    type: "run.completed" | "run.failed" | "run.canceled" | "run.requires_action";
+                };
+            };
+        };
+        responses: {
+            /** @description Accepted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    "events.run.requires_action": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    data: {
+                        conversation_id: string | null;
+                        end_user_id: string | null;
+                        error_code?: string;
+                        id: string;
+                        interrupt_id?: string;
+                        interrupt_kind?: string;
+                        metadata: {
+                            [key: string]: string;
+                        };
+                        /** @constant */
+                        object: "run";
+                        profile_id: string | null;
+                        status: string;
+                    };
+                    timestamp: string;
+                    /** @enum {string} */
+                    type: "run.completed" | "run.failed" | "run.canceled" | "run.requires_action";
+                };
+            };
+        };
+        responses: {
+            /** @description Accepted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

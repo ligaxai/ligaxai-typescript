@@ -73,8 +73,9 @@ function toBlob(file: FileUpload): { blob: Blob; filename: string | undefined } 
     const name = (file as Partial<File>).name;
     return { blob: file, filename: typeof name === 'string' && name ? name : undefined };
   }
-  const blob = new Blob([file.data as BlobPart], {
+  const blob = new File([file.data as BlobPart], file.filename, {
     type: file.contentType ?? 'application/octet-stream',
   });
-  return { blob, filename: file.filename };
+  // `File` already carries `filename`; a third argument to `FormData.append` is only for bare blobs.
+  return { blob, filename: undefined };
 }

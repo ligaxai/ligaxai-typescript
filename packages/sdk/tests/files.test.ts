@@ -30,6 +30,11 @@ function formOf(call: { init: RequestInit }): FormData {
   return body as FormData;
 }
 
+/** Bun's FormData may append `;charset=utf-8` to text MIME types on round-trip. */
+function mimeBase(type: string): string {
+  return type.split(';')[0]!.trim().toLowerCase();
+}
+
 afterEach(() => vi.unstubAllGlobals());
 
 describe('files', () => {
@@ -63,7 +68,7 @@ describe('files', () => {
     const form = formOf(fetch.calls[0]!);
     const sent = form.get('file') as File;
     expect(sent.name).toBe('notes.txt');
-    expect(sent.type).toBe('text/plain');
+    expect(mimeBase(sent.type)).toBe('text/plain');
     expect(await sent.text()).toBe('hello');
     expect(form.has('end_user_id')).toBe(false);
   });

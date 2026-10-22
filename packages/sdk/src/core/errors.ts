@@ -136,6 +136,28 @@ export class InternalServerError extends APIError {}
 /** Raised when the caller tries to use the SDK in a browser without opting in. */
 export class BrowserEnvironmentError extends LigaXError {}
 
+/**
+ * Raised by `files.create()` before anything is sent when the file is over the API's limit
+ * (25 MB): uploading it would only spend the bandwidth to be refused with `413 file_too_large`.
+ */
+export class FileTooLargeError extends LigaXError {
+  readonly size: number;
+  readonly limit: number;
+
+  constructor(size: number, limit: number) {
+    super(
+      `The file is ${formatMB(size)}; files are limited to ${formatMB(limit)}. Upload a smaller file.`,
+    );
+    this.size = size;
+    this.limit = limit;
+  }
+}
+
+function formatMB(bytes: number): string {
+  const mb = bytes / (1024 * 1024);
+  return `${Number.isInteger(mb) ? mb : mb.toFixed(1)} MB`;
+}
+
 /** Raised by `@ligaxai/sdk/webhooks` when a signature does not verify. */
 export class WebhookVerificationError extends LigaXError {}
 

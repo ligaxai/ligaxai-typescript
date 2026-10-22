@@ -19,6 +19,7 @@ export interface RequestOptions {
   method: HTTPMethod;
   path: string;
   query?: Record<string, string | number | boolean | null | undefined> | undefined;
+  /** JSON-encoded, except a `FormData`, which is sent as `multipart/form-data` as is. */
   body?: unknown;
   headers?: Record<string, string | null | undefined> | undefined;
   signal?: AbortSignal | null | undefined;
@@ -173,7 +174,10 @@ export class BaseClient {
       ...this.config.defaultHeaders,
     });
     if (apiKey) headers.set('Authorization', `Bearer ${apiKey}`);
-    if (options.body !== undefined) headers.set('Content-Type', 'application/json');
+    // A multipart body's Content-Type carries the boundary, which only `fetch` knows: leave it unset.
+    if (options.body !== undefined && !isFormData(options.body)) {
+      headers.set('Content-Type', 'application/json');
+    }
     if (idempotencyKey) headers.set('Idempotency-Key', idempotencyKey);
     for (const [key, value] of Object.entries(options.headers ?? {})) {
       if (value === null || value === undefined) headers.delete(key);
@@ -190,7 +194,13 @@ export class BaseClient {
     // de-duplicate a request whose first attempt it did process but whose response we lost.
     const idempotencyKey =
       options.idempotencyKey ?? (options.method === 'POST' ? crypto.randomUUID() : undefined);
-    const body = options.body === undefined ? null : JSON.stringify(options.body);
+    // A `FormData` is re-readable, so every retry re-sends the same parts (unlike a stream body).
+    const body: BodyInit | null =
+      options.body === undefined
+        ? null
+        : isFormData(options.body)
+          ? options.body
+          : JSON.stringify(options.body);
     const log = this.config.logger;
     const provider = typeof this.config.apiKey === 'function' ? this.config.apiKey : undefined;
     let apiKey: string | undefined = provider
@@ -324,6 +334,10 @@ export function sleep(ms: number, signal: AbortSignal | null | undefined): Promi
     };
     signal?.addEventListener('abort', onAbort, { once: true });
   });
+}
+
+function isFormData(value: unknown): value is FormData {
+  return typeof FormData !== 'undefined' && value instanceof FormData;
 }
 
 function isTokenExpired(body: unknown): boolean {

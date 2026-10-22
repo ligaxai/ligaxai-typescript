@@ -86,6 +86,50 @@ describe('webhooks', () => {
     expect(fetch.calls[0]!.headers.get('idempotency-key')).toBe('zap-sub-42');
   });
 
+  it('create parses an idempotent replay (200, Idempotent-Replayed) as the same endpoint and secret', async () => {
+    const created: WebhookEndpointWithSecret = { ...endpoint(), secret: 'whsec_replayed' };
+    const fetch = scriptedFetch([
+      json(created, { status: 200, headers: { 'idempotent-replayed': 'true' } }),
+    ]);
+    const { data, response } = await client(fetch)
+      .webhooks.create(
+        { url: 'https://hooks.example.com/ligax', event_types: ['run.completed'] },
+        { idempotencyKey: 'zap-sub-42' },
+      )
+      .withResponse();
+    expect(data.id).toBe(ID);
+    expect(data.secret).toBe('whsec_replayed');
+    expect(response.status).toBe(200);
+    expect(response.headers.get('idempotent-replayed')).toBe('true');
+  });
+
+  it('create retries a concurrent duplicate (409, x-should-retry) with the same key', async () => {
+    const created: WebhookEndpointWithSecret = { ...endpoint(), secret: 'whsec_once' };
+    const fetch = scriptedFetch([
+      json(
+        {
+          error: {
+            type: 'conflict_error',
+            code: 'idempotency_in_progress',
+            message: 'The first request with this Idempotency-Key is still being processed.',
+            request_id: 'req_1',
+          },
+        },
+        { status: 409, headers: { 'x-should-retry': 'true', 'retry-after-ms': '1' } },
+      ),
+      json(created, { status: 200, headers: { 'idempotent-replayed': 'true' } }),
+    ]);
+    const result = await client(fetch).webhooks.create({
+      url: 'https://hooks.example.com/ligax',
+      event_types: ['run.completed'],
+    });
+    expect(result.secret).toBe('whsec_once');
+    expect(fetch.calls).toHaveLength(2);
+    const key = fetch.calls[0]!.headers.get('idempotency-key');
+    expect(key).toBeTruthy();
+    expect(fetch.calls[1]!.headers.get('idempotency-key')).toBe(key);
+  });
+
   it('list GETs /webhooks', async () => {
     const fetch = scriptedFetch([json({ object: 'list', data: [endpoint()], has_more: false })]);
     const page = await client(fetch).webhooks.list();

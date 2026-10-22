@@ -71,6 +71,10 @@ export const TERMINAL_CONNECT_SESSION_STATUSES: readonly ConnectSessionStatus[] 
   'expired',
 ];
 
+/** A file uploaded for an agent to read (`file_…`): attach its `id` in `runs.create({ attachments })`. */
+export type FileObject = JSONBody<'files.create', 201>;
+export type FileDeleted = JSONBody<'files.delete', 200>;
+
 export type Profile = components['schemas']['Profile'];
 export type ProfileList = JSONBody<'profiles.list', 200>;
 

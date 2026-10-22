@@ -20,6 +20,13 @@ export class Webhooks extends APIResource {
   /**
    * `POST /webhooks` — register an endpoint. The answer carries the signing `secret` exactly once;
    * the API never returns it again (`secret_hint` is all later reads show).
+   *
+   * Safe to retry: the SDK sends an `Idempotency-Key` (minted per call, or `idempotencyKey`), and
+   * the API answers a repeat of the same key with the endpoint it already created — same id, same
+   * secret — as `200` with `Idempotent-Replayed: true`, instead of a second endpoint. A duplicate
+   * that arrives while the first is still being created gets `409` with `x-should-retry: true`,
+   * which the SDK retries. Pass your own key to keep that guarantee across process restarts (a
+   * Zapier-style subscribe that may run twice).
    */
   create(
     body: WebhookEndpointCreateParams,

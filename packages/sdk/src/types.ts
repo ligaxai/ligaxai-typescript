@@ -39,6 +39,15 @@ export type RunEventList = JSONBody<'runs.events', 200>;
 export type InterruptDecisionParams = RequestBody<'runs.resolveInterrupt'>;
 export type InterruptDecision = InterruptDecisionParams['decision'];
 
+/** `POST /client_tokens` body: the profile and end user the token is bound to, optional TTL. */
+export type ClientTokenCreateParams = RequestBody<'clientTokens.create'>;
+/** A minted client token (`lgx_ct_…`) and what it is bound to. */
+export type ClientToken = JSONBody<'clientTokens.create', 201>;
+/** `POST /widget/sessions` body — called by the website widget with a publishable key. */
+export type WidgetSessionCreateParams = RequestBody<'widget.sessions.create'>;
+/** A client token for an anonymous visitor (`end_user_id` = `visitor:<visitor_id>`). */
+export type WidgetSession = JSONBody<'widget.sessions.create', 201>;
+
 export type Conversation = JSONBody<'conversations.get', 200>;
 
 export type Profile = components['schemas']['Profile'];

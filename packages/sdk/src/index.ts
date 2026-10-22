@@ -3,7 +3,7 @@ export type { ClientOptions } from './client.js';
 export { LigaX as default } from './client.js';
 
 export { APIPromise, BaseClient } from './core/base-client.js';
-export type { Fetch, HTTPMethod, RequestOptions } from './core/base-client.js';
+export type { ApiKeyProvider, Fetch, HTTPMethod, RequestOptions } from './core/base-client.js';
 export { Stream } from './core/streaming.js';
 export { Page } from './core/pagination.js';
 export type { PageResponse } from './core/pagination.js';
@@ -14,6 +14,7 @@ export * from './core/errors.js';
 
 export { Runs } from './resources/runs.js';
 export type { RunBody, RunCreateBody, RunEventsParams, RunWaitOptions } from './resources/runs.js';
+export { ClientTokens } from './resources/client-tokens.js';
 export { Conversations } from './resources/conversations.js';
 export type { ConversationGetParams } from './resources/conversations.js';
 export { Profiles } from './resources/profiles.js';
@@ -27,10 +28,19 @@ export { RunStream } from './lib/run-stream.js';
 export type { RunStreamResult } from './lib/run-stream.js';
 export type { RunEvent } from './lib/lae.js';
 export { TextAssembler } from './lib/text-assembler.js';
+export { cachedTokenProvider, isBrowserCredential } from './lib/token-provider.js';
+export type {
+  CachedTokenProvider,
+  CachedTokenProviderOptions,
+  ClientTokenLike,
+  TokenFetcher,
+} from './lib/token-provider.js';
 export { TERMINAL_RUN_STATUSES, isTerminalStatus } from './types.js';
 export type {
   ApiKeyInfo,
   ApiKeyLimitWebhookEvent,
+  ClientToken,
+  ClientTokenCreateParams,
   Conversation,
   EndUser,
   ErrorBody,
@@ -62,5 +72,7 @@ export type {
   WebhookEvent,
   WebhookEventType,
   WebhookTestEvent,
+  WidgetSession,
+  WidgetSessionCreateParams,
 } from './types.js';
 export type * as Types from './generated/types.js';

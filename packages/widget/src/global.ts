@@ -1,8 +1,9 @@
-// Entry for the IIFE build: exposes `window.LigaXWidget` and mounts automatically when the
-// script tag carries `data-publishable-key` and `data-profile`.
-import { autoInit, init } from './index.js';
+// Entry for the IIFE build (`dist/widget.global.js`): exposes `window.LigaXWidget`, registers
+// `<ligax-chat>` and mounts from the loading script's `data-*` attributes when they are present.
+import { autoInit, define, mount } from './index.js';
 
-export { autoInit, init };
-export type { WidgetHandle, WidgetOptions, WidgetTheme } from './index.js';
+export { autoInit, define, mount };
+export type { LigaXChatElement, WidgetOptions } from './index.js';
 
-autoInit();
+define();
+void autoInit();

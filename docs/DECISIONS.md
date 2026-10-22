@@ -143,3 +143,49 @@ in the transport.
 
 **Reference:** `packages/sdk/src/lib/text-assembler.ts`, `packages/sdk/src/ai-sdk.ts`,
 `packages/sdk/src/next.ts`
+
+---
+
+## 2026-10-22 — The browser guard keys on the credential, and a token is a provider
+
+**Context:** Phase 5 gives browsers their own credentials: client tokens (`lgx_ct_`, minutes long,
+bound to one profile and end user) and publishable keys (`lgx_pk_`, widget sessions only). The
+client refused every browser unless `dangerouslyAllowBrowser` was set, which taught integrators to
+set it — and the flag then lets a secret key through too.
+
+**Decision:** In a browser-like environment the client accepts an `lgx_ct_`/`lgx_pk_` string or a
+token **provider** without the flag, and refuses anything else (a provider's answer is checked per
+request). `apiKey` may be `({ refresh }) => string`: called before each request, and once with
+`refresh: true` when the API answers `401 token_expired` — resent with the same idempotency key and
+without spending the retry budget. `cachedTokenProvider` holds a token until 30 s before
+`expires_at`. The refresh lives in `base-client.ts` with the rest of the pipeline.
+
+**Consequences:** `dangerouslyAllowBrowser` is now only for the deliberate exception. The API still
+refuses a secret key sent with an `Origin`. The Python SDK has no browser and needs no counterpart;
+the refresh rule (one refresh, only on `token_expired`) is TS-only until a server-side token use
+needs it.
+
+**Reference:** `packages/sdk/src/client.ts`, `packages/sdk/src/core/base-client.ts`,
+`packages/sdk/src/lib/token-provider.ts`
+
+---
+
+## 2026-10-22 — The widget is a custom element; model text never reaches `innerHTML`
+
+**Context:** The template widget was an `innerHTML`-built panel on a pre-LAE event shape. A website
+widget renders text a prompt injection may control, inside pages whose CSS it does not own.
+
+**Decision:** `<ligax-chat>`, a framework-free custom element in an open Shadow DOM, created lazily
+so SSR imports never touch `HTMLElement`. It runs on the SDK client (`runs.stream`,
+`resolveInterrupt`, `followEvents`) and `TextAssembler`, not its own fetch/SSE code. Answers are
+built as DOM nodes from a tiny markdown subset (paragraphs, bold, code, fenced code, `https:`-only
+links with `rel="noopener noreferrer"`; no images). The React wrapper lives at
+`@ligaxai/widget/react` with `react` as an optional peer, so `@ligaxai/react` does not depend on the
+widget and widget users without React install nothing extra. File upload is deferred (no files API).
+
+**Consequences:** The IIFE inlines the SDK client (≈ 42 KB min / 15 KB gzip). A richer markdown
+(lists, tables) is a renderer change, never `innerHTML`. Interrupt kinds other than `tool_approval`
+are offered only as Dismiss until the widget renders forms.
+
+**Reference:** `packages/widget/src/element.ts`, `packages/widget/src/markdown.ts`,
+`packages/widget/src/react.ts`

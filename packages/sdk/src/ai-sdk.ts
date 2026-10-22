@@ -1,19 +1,24 @@
 import type { ChatTransport, UIMessage, UIMessageChunk } from 'ai';
 import { EventSourceParserStream } from 'eventsource-parser/stream';
 
+import { LigaX } from './client.js';
 import type { Fetch } from './core/base-client.js';
 import { APIError } from './core/errors.js';
+import { defaultInput } from './lib/input.js';
 import { parseRunEvent, readSSE, type RunEvent } from './lib/lae.js';
 import { TextAssembler } from './lib/text-assembler.js';
+import { cachedTokenProvider, type TokenFetcher } from './lib/token-provider.js';
+import type { RunBody } from './resources/runs.js';
 
 /**
  * `@ligaxai/sdk/ai-sdk` — Vercel AI SDK `ChatTransport`s so `useChat` from `@ai-sdk/react` talks to
- * LigaX through **your own server route** (built with `@ligaxai/sdk/next`), so the secret key never
- * reaches the browser. `ai` is imported for types only: it stays an optional peer and this module
+ * LigaX either through **your own server route** (built with `@ligaxai/sdk/next`) or **directly**
+ * with a short-lived client token your server minted — the secret key never reaches the browser. `ai` is imported for types only: it stays an optional peer and this module
  * adds nothing to the bundle beyond the SSE parser.
  *
  * - `createLigaXTransport` — the route returns the **LAE event stream** (what `createRunRoute`
- *   returns); the transport translates it to `UIMessageChunk`s in the browser.
+ *   returns), or, given `getToken`, the transport calls `POST /runs` itself; either way the LAE
+ *   events are translated to `UIMessageChunk`s in the browser.
  * - `createChatTransport` — the route already returns the AI SDK's own UI message stream
  *   (`data: <UIMessageChunk>` lines and `data: [DONE]`); chunks are passed through.
  */
@@ -130,12 +135,29 @@ async function throwFromResponse(response: Response): Promise<never> {
 export interface LigaXTransportOptions {
   /** Your server route (e.g. one built with `createRunRoute`). Default `/api/chat`. */
   api?: string | undefined;
+  /**
+   * **Direct mode.** Returns a client token (`lgx_ct_…`) — a string, or `{ token, expires_at }` as
+   * `createTokenRoute` answers — and switches the transport from your route to the API itself. It
+   * is called once and reused until shortly before `expires_at`, and again on `401 token_expired`.
+   */
+  getToken?: TokenFetcher | undefined;
+  /** Direct mode: the API base URL. Default `https://enterprise.ligax.ai/api/public/v1`. */
+  baseURL?: string | undefined;
+  /**
+   * Direct mode: the `prf_…` profile the token was minted for. Optional when `getToken` answers
+   * `{ token, expires_at, profile_id }` (as `createTokenRoute` does).
+   */
+  profileId?: string | undefined;
   headers?:
     | Record<string, string>
     | (() => Record<string, string> | Promise<Record<string, string>>)
     | undefined;
-  /** Extra JSON merged into every request body. */
+  /**
+   * Extra JSON merged into every request body. In direct mode it is merged into the `POST /runs`
+   * body, so only run fields belong there (`metadata`, `model`).
+   */
   body?: Record<string, unknown> | undefined;
+  /** Route mode only: sent with the request to your route (e.g. `'include'` for cookies). */
   credentials?: RequestCredentials | undefined;
   fetch?: Fetch | undefined;
   /** Called once per turn with the ids your route echoed (`X-Run-Id`, `X-Conversation-Id`). */
@@ -147,10 +169,21 @@ export interface LigaXTransportOptions {
  * `X-Conversation-Id` the route echoed and sends it back as `conversation_id` on the next turn, so
  * the agent keeps the conversation's context server-side without the browser re-sending history.
  * `reconnectToStream` resolves `null` (stream resume is not offered in v0.1).
+ *
+ * ```ts
+ * // through your route
+ * createLigaXTransport({ api: '/api/chat' });
+ * // directly, with a token from `createTokenRoute`
+ * createLigaXTransport({
+ *   profileId: 'prf_…',
+ *   getToken: () => fetch('/api/ligax-token', { method: 'POST' }).then((r) => r.json()),
+ * });
+ * ```
  */
 export function createLigaXTransport<M extends UIMessage = UIMessage>(
   options: LigaXTransportOptions = {},
 ): ChatTransport<M> {
+  if (options.getToken) return directTransport<M>(options, options.getToken);
   const api = options.api ?? '/api/chat';
   const fetchImpl: Fetch = options.fetch ?? globalThis.fetch.bind(globalThis);
   const conversations = new Map<string, string>();
@@ -192,6 +225,81 @@ export function createLigaXTransport<M extends UIMessage = UIMessage>(
         ...(echoed ? { conversationId: echoed } : {}),
       });
       return laeToUIMessageStream(response.body);
+    },
+
+    async reconnectToStream(): Promise<ReadableStream<UIMessageChunk> | null> {
+      return null;
+    },
+  };
+}
+
+/**
+ * Direct mode: the browser holds a client token and calls `POST /runs` through the SDK client, so
+ * retries, the token refresh and error mapping are the client's — not a second copy here. The token
+ * fills in the end user; `profile_id` is still sent because the API's schema requires it.
+ */
+function directTransport<M extends UIMessage>(
+  options: LigaXTransportOptions,
+  getToken: TokenFetcher,
+): ChatTransport<M> {
+  let profileId = options.profileId;
+  // A token answer that names its profile (`createTokenRoute`, `POST /client_tokens`) is enough:
+  // the browser then needs no profile id of its own.
+  const tokens = cachedTokenProvider(async (context) => {
+    const value = await getToken(context);
+    if (!profileId && typeof value === 'object') {
+      const named = (value as { profile_id?: unknown }).profile_id;
+      if (typeof named === 'string' && named) profileId = named;
+    }
+    return value;
+  });
+  const client = new LigaX({ apiKey: tokens, baseURL: options.baseURL, fetch: options.fetch });
+  const conversations = new Map<string, string>();
+
+  return {
+    async sendMessages(opts: SendMessagesOptions<M>): Promise<ReadableStream<UIMessageChunk>> {
+      const input = defaultInput({ messages: opts.messages });
+      if (!input) throw new TypeError('No user message to send.');
+      const base =
+        typeof options.headers === 'function' ? await options.headers() : options.headers;
+      const headers: Record<string, string> = { ...base };
+      new Headers(opts.headers).forEach((value, key) => (headers[key] = value));
+      const conversationId = conversations.get(opts.chatId);
+      if (!profileId) await tokens({ refresh: false });
+      if (!profileId) {
+        throw new TypeError(
+          'createLigaXTransport: pass `profileId`, or return `profile_id` from `getToken`.',
+        );
+      }
+      const body: RunBody = {
+        ...options.body,
+        ...(opts.body as Record<string, unknown> | undefined),
+        profile_id: profileId,
+        input,
+        ...(conversationId ? { conversation_id: conversationId } : {}),
+      };
+      const stream = await client.runs.stream(body, {
+        headers,
+        ...(opts.abortSignal ? { signal: opts.abortSignal } : {}),
+      });
+      if (stream.conversationId) conversations.set(opts.chatId, stream.conversationId);
+      options.onRun?.({
+        chatId: opts.chatId,
+        ...(stream.runId ? { runId: stream.runId } : {}),
+        ...(stream.conversationId ? { conversationId: stream.conversationId } : {}),
+      });
+      const chunks = toUIMessageChunks(stream);
+      return new ReadableStream<UIMessageChunk>({
+        async pull(controller) {
+          const { done, value } = await chunks.next();
+          if (done) controller.close();
+          else controller.enqueue(value);
+        },
+        async cancel() {
+          stream.abort();
+          await chunks.return(undefined);
+        },
+      });
     },
 
     async reconnectToStream(): Promise<ReadableStream<UIMessageChunk> | null> {

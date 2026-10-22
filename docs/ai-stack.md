@@ -22,7 +22,7 @@ Authoritative stack facts for this repository. When another doc disagrees, this 
 | ----------------- | -------- | -------------------------------------- | ----------------------------------------- |
 | `@ligaxai/sdk`    | neutral  | `eventsource-parser`                   | `ai`, `next`                              |
 | `@ligaxai/react`  | browser  | `@ligaxai/sdk`                         | `react` (required), `ai`, `@ai-sdk/react` |
-| `@ligaxai/widget` | browser  | `@ligaxai/sdk` (library) / none (IIFE) | —                                         |
+| `@ligaxai/widget` | browser  | `@ligaxai/sdk` (library) / none (IIFE) | `react` (only for `./react`)              |
 
 ## Wire contracts the SDK encodes
 
@@ -48,7 +48,7 @@ Authoritative stack facts for this repository. When another doc disagrees, this 
 
 ## Spec and parity
 
-`SPEC_VERSION` (file) names the spec release tag — `public-api-spec-v0.1.0`; until the spec repo
+`SPEC_VERSION` (file) names the spec release tag — `public-api-spec-v0.2.0`; until the spec repo
 publishes assets `openapi/openapi.json` is copied by hand from `ligax-enterprise`. `pnpm sync-spec`
 downloads `openapi.json` and `conformance.tar.gz` from the `<org>/<slug>-spec` GitHub release;
 `pnpm gen:types` regenerates `packages/sdk/src/generated/types.ts`; CI runs `gen-types --check`. The

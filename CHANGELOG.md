@@ -7,6 +7,31 @@ Repository-level changes (tooling, docs, CI). Package changelogs are written by 
 
 ## [Unreleased]
 
+### Added — Browser access and the website widget (`feat/browser-access`)
+
+- **Contract** — `openapi/openapi.json` re-copied from `ligax-enterprise/docs/public-api/spec`:
+  `POST /client_tokens` (secret key, scope `client_tokens:write`) and `POST /widget/sessions`
+  (publishable key). `SPEC_VERSION` = `public-api-spec-v0.2.0`; generated types regenerated.
+- **Client tokens** — `client.clientTokens.create()`; `apiKey` may be a token provider
+  (`({ refresh }) => string`), called before requests and once more on `401 token_expired` (no retry
+  budget spent, same `Idempotency-Key`); `cachedTokenProvider()`. In a browser the client accepts
+  `lgx_ct_` / `lgx_pk_` keys and providers without `dangerouslyAllowBrowser`; a secret key (or a
+  provider returning one) is still refused.
+- **`/next` `createTokenRoute`** — mints a client token for the signed-in user; answers
+  `{ token, expires_at, profile_id, conversation_id? }` with `Cache-Control: no-store`; no user →
+  401 without calling the API.
+- **Direct mode** — `createLigaXTransport({ getToken, profileId?, baseURL? })` and
+  `useLigaXChat({ getToken })` (or `LigaXProvider` `baseURL` + `getClientToken`) call `POST /runs`
+  from the browser with the token; the BFF `api` mode is unchanged.
+- **`@ligaxai/widget` rebuilt** — `<ligax-chat>` custom element in Shadow DOM; script-tag mount
+  from `data-publishable-key` + `data-profile-id` (anonymous visitors, `visitor_id` in
+  `localStorage`) or `data-token-url`; streaming, tool activity, approval card for
+  `requires_action`, friendly errors, safe markdown subset (never `innerHTML` of model output),
+  `--ligax-*` theming, dark mode, keyboard and screen-reader support. `@ligaxai/widget/react`
+  exports `<LigaXChat>`. IIFE ≈ 42 KB min / 15 KB gzip. The "preview" label is gone.
+- **Docs** — README "Browser access (client tokens)" and "Website widget"; widget README; the
+  Next.js example gains `/api/ligax-token` and a `/direct` page. (by @sadain, 2026-10-22)
+
 ### Added — Webhook endpoints (`feat/agent-api-v0.1`)
 
 - **Contract** — `openapi/openapi.json` re-copied from `ligax-enterprise/docs/public-api/spec`:

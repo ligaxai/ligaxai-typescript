@@ -1,7 +1,7 @@
 # openapi/
 
 `openapi.json` is the public Agent API contract (OpenAPI 3.1) for the tag in `SPEC_VERSION`
-(`public-api-spec-v0.1.0`, `info.version` 0.1.0). It is committed so the generated types can be
+(`public-api-spec-v0.2.0`, `info.version` 0.2.0). It is committed so the generated types can be
 checked against it: `pnpm gen:types` regenerates `packages/sdk/src/generated/types.ts`, and CI runs
 `node scripts/gen-types.mjs --check` so the committed types can never drift from the spec they claim
 to come from.

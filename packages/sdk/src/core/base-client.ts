@@ -7,6 +7,14 @@ import { VERSION } from '../version.js';
 export type HTTPMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 export type Fetch = (input: string | URL | Request, init?: RequestInit) => Promise<Response>;
 
+/**
+ * A credential resolved per request instead of fixed at construction — how a browser holds a
+ * short-lived client token (`lgx_ct_…`). Called before each request with `refresh: false`, and once
+ * more with `refresh: true` when the API answers `401 token_expired`, so a provider that caches its
+ * token knows to fetch a new one. A provider taking no arguments is fine.
+ */
+export type ApiKeyProvider = (context: { refresh: boolean }) => string | Promise<string>;
+
 export interface RequestOptions {
   method: HTTPMethod;
   path: string;
@@ -26,7 +34,7 @@ export interface RequestOptions {
 
 export interface BaseClientConfig {
   baseURL: string;
-  apiKey: string | undefined;
+  apiKey: string | ApiKeyProvider | undefined;
   timeout: number;
   maxRetries: number;
   defaultHeaders: Record<string, string>;
@@ -154,13 +162,17 @@ export class BaseClient {
     return url.toString();
   }
 
-  protected buildHeaders(options: RequestOptions, idempotencyKey: string | undefined): Headers {
+  protected buildHeaders(
+    options: RequestOptions,
+    idempotencyKey: string | undefined,
+    apiKey: string | undefined,
+  ): Headers {
     const headers = new Headers({
       Accept: options.stream ? 'text/event-stream' : 'application/json',
       'User-Agent': `ligaxai-typescript-typescript/${VERSION}`,
       ...this.config.defaultHeaders,
     });
-    if (this.config.apiKey) headers.set('Authorization', `Bearer ${this.config.apiKey}`);
+    if (apiKey) headers.set('Authorization', `Bearer ${apiKey}`);
     if (options.body !== undefined) headers.set('Content-Type', 'application/json');
     if (idempotencyKey) headers.set('Idempotency-Key', idempotencyKey);
     for (const [key, value] of Object.entries(options.headers ?? {})) {
@@ -180,13 +192,20 @@ export class BaseClient {
       options.idempotencyKey ?? (options.method === 'POST' ? crypto.randomUUID() : undefined);
     const body = options.body === undefined ? null : JSON.stringify(options.body);
     const log = this.config.logger;
+    const provider = typeof this.config.apiKey === 'function' ? this.config.apiKey : undefined;
+    let apiKey: string | undefined = provider
+      ? await provider({ refresh: false })
+      : (this.config.apiKey as string | undefined);
+    // One refresh per request: a provider that keeps answering with an expired token must surface
+    // the 401, not loop on it.
+    let refreshed = false;
 
     for (let attempt = 0; ; attempt++) {
       const controller = new AbortController();
       const signals: AbortSignal[] = [controller.signal, AbortSignal.timeout(timeout)];
       if (options.signal) signals.push(options.signal);
       const signal = AbortSignal.any(signals);
-      const headers = this.buildHeaders(options, idempotencyKey);
+      const headers = this.buildHeaders(options, idempotencyKey, apiKey);
 
       log.debug(`${options.method} ${url}`, { attempt, headers: redactHeaders(headers) });
 
@@ -224,6 +243,15 @@ export class BaseClient {
       }
 
       const errBody = await readBody(response);
+      if (provider && !refreshed && response.status === 401 && isTokenExpired(errBody)) {
+        // A short-lived client token ran out between mint and use. Not a retry (the budget is
+        // untouched): the request never ran, and the same idempotency key is resent.
+        refreshed = true;
+        log.info(`${options.method} ${url}: client token expired; refreshing once`);
+        apiKey = await provider({ refresh: true });
+        attempt -= 1;
+        continue;
+      }
       const error = APIError.generate(response.status, errBody, undefined, response.headers);
       log.error(`${options.method} ${url} failed`, {
         status: response.status,
@@ -296,6 +324,11 @@ export function sleep(ms: number, signal: AbortSignal | null | undefined): Promi
     };
     signal?.addEventListener('abort', onAbort, { once: true });
   });
+}
+
+function isTokenExpired(body: unknown): boolean {
+  const error = (body as { error?: { code?: unknown } } | null)?.error;
+  return !!error && typeof error === 'object' && error.code === 'token_expired';
 }
 
 async function readBody(response: Response): Promise<unknown> {

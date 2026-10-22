@@ -3,7 +3,7 @@ import { defineConfig } from 'tsdown';
 export default defineConfig([
   // (a) library build for bundler users: the SDK stays a dependency, resolved by their bundler.
   {
-    entry: { index: 'src/index.ts' },
+    entry: { index: 'src/index.ts', react: 'src/react.ts' },
     format: ['esm', 'cjs'],
     fixedExtension: true,
     platform: 'browser',
@@ -11,7 +11,7 @@ export default defineConfig([
     dts: true,
     sourcemap: true,
     clean: true,
-    deps: { neverBundle: [/^@ligaxai\//] },
+    deps: { neverBundle: [/^@ligaxai\//, 'react'] },
   },
   // (b) one self-contained script for a <script> tag: everything inlined, global name derived
   // from the class prefix.

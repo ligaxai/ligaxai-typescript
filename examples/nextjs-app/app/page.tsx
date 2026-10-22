@@ -1,43 +1,25 @@
 'use client';
 
-import { useState } from 'react';
+import { useChat } from '@ai-sdk/react';
+import { useLigaXChat } from '@ligaxai/react';
+
+import { ChatView } from './chat-view';
 
 /**
- * Calls the route in `app/api/chat/route.ts`, which holds the secret key and proxies to
- * the API. Nothing in this file ever sees `LIGAX_API_KEY`.
+ * A chat page on `useChat`. `useLigaXChat` supplies the transport: it posts to `/api/chat` (the
+ * route in `app/api/chat/route.ts`, which holds the key), turns the LAE event stream into `useChat`
+ * messages, and continues the same conversation on the next turn. Nothing here sees the API key.
+ *
+ * `/direct` is the alternative: the browser calls the API itself with a short-lived client token.
  */
 export default function Page() {
-  const [output, setOutput] = useState<string>('');
-  const [busy, setBusy] = useState(false);
-
-  async function ping() {
-    setBusy(true);
-    setOutput('');
-    try {
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ action: 'health' }),
-      });
-      setOutput(`${res.status} ${await res.text()}`);
-    } catch (error) {
-      setOutput(error instanceof Error ? error.message : String(error));
-    } finally {
-      setBusy(false);
-    }
-  }
-
+  const chat = useLigaXChat({ useChat, api: '/api/chat' });
   return (
-    <main>
-      <h1>LigaX AI · Next.js example</h1>
+    <>
+      <ChatView title="LigaX · Next.js example" chat={chat} />
       <p>
-        The button posts to <code>/api/chat</code>; the route handler calls the API with the
-        server-side key.
+        <a href="/direct">Direct mode (client token) →</a>
       </p>
-      <button onClick={ping} disabled={busy}>
-        {busy ? 'Calling…' : 'Check API health'}
-      </button>
-      <pre style={{ marginTop: '1rem', padding: '1rem', background: '#f3f4f6' }}>{output}</pre>
-    </main>
+    </>
   );
 }

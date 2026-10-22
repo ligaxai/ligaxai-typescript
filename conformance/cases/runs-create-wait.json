@@ -1,0 +1,87 @@
+{
+  "name": "runs.create sends a wait-mode run with the caller's Idempotency-Key and returns the run",
+  "request": {
+    "method": "POST",
+    "path": "/runs",
+    "headers": {
+      "authorization": "Bearer *",
+      "accept": "application/json",
+      "content-type": "application/json",
+      "idempotency-key": "conf-run-0001"
+    },
+    "body": {
+      "profile_id": "prf_AAAAAAAAAAAAAAAAAAAA",
+      "input": "Hello",
+      "mode": "wait"
+    }
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "content-type": "application/json",
+      "x-request-id": "req_conf_runs_1"
+    },
+    "body": {
+      "object": "run",
+      "id": "6f1c1a52-6a9f-4f5e-9d6a-1d2b3c4d5e6f",
+      "status": "completed",
+      "profile_id": "prf_AAAAAAAAAAAAAAAAAAAA",
+      "conversation_id": "conv_BBBBBBBBBBBBBBBBBBBBBBBB",
+      "end_user_id": null,
+      "model": "gemini/gemini-flash/latest",
+      "created_at": "2026-10-22T10:00:00.000Z",
+      "completed_at": "2026-10-22T10:00:03.000Z",
+      "output": {
+        "text": "Hi there.",
+        "artifacts": [],
+        "sources": [],
+        "tool_calls": []
+      },
+      "required_action": null,
+      "usage": {
+        "input_tokens": 12,
+        "output_tokens": 4,
+        "cost_usd": "0.000021"
+      },
+      "error": null,
+      "metadata": {}
+    }
+  },
+  "expect": {
+    "call": "runs.create",
+    "args": [
+      {
+        "profile_id": "prf_AAAAAAAAAAAAAAAAAAAA",
+        "input": "Hello"
+      },
+      {
+        "idempotencyKey": "conf-run-0001"
+      }
+    ],
+    "result": {
+      "object": "run",
+      "id": "6f1c1a52-6a9f-4f5e-9d6a-1d2b3c4d5e6f",
+      "status": "completed",
+      "profile_id": "prf_AAAAAAAAAAAAAAAAAAAA",
+      "conversation_id": "conv_BBBBBBBBBBBBBBBBBBBBBBBB",
+      "end_user_id": null,
+      "model": "gemini/gemini-flash/latest",
+      "created_at": "2026-10-22T10:00:00.000Z",
+      "completed_at": "2026-10-22T10:00:03.000Z",
+      "output": {
+        "text": "Hi there.",
+        "artifacts": [],
+        "sources": [],
+        "tool_calls": []
+      },
+      "required_action": null,
+      "usage": {
+        "input_tokens": 12,
+        "output_tokens": 4,
+        "cost_usd": "0.000021"
+      },
+      "error": null,
+      "metadata": {}
+    }
+  }
+}

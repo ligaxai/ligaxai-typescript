@@ -22,28 +22,37 @@ Authoritative stack facts for this repository. When another doc disagrees, this 
 | ----------------- | -------- | -------------------------------------- | ----------------------------------------- |
 | `@ligaxai/sdk`    | neutral  | `eventsource-parser`                   | `ai`, `next`                              |
 | `@ligaxai/react`  | browser  | `@ligaxai/sdk`                         | `react` (required), `ai`, `@ai-sdk/react` |
-| `@ligaxai/widget` | browser  | `@ligaxai/sdk` (library) / none (IIFE) | —                                         |
+| `@ligaxai/widget` | browser  | `@ligaxai/sdk` (library) / none (IIFE) | `react` (only for `./react`)              |
 
 ## Wire contracts the SDK encodes
 
 - **Auth** `Authorization: Bearer <key>`; **UA** `ligaxai-typescript-typescript/<version>`.
 - **Request id** response header `x-request-id` → `error.request_id` / `result._request_id`.
-- **Errors** `{ error: { type, code, message, request_id, param } }`; class chosen by status.
+- **Errors** `{ error: { type, code, message, request_id, param } }`; class chosen by status; 402
+  may carry `X-Limit-Resets-At`.
 - **Idempotency** `Idempotency-Key` UUIDv4 on every POST, reused across retries.
 - **Retries** see CLAUDE.md non-negotiable 2.
-- **Streaming** SSE, JSON per `data:` line, `data: [DONE]` sentinel, `id:` tracked for resume.
+- **Streaming** generic `Stream<T>`: SSE, JSON per `data:` line, `data: [DONE]` sentinel, `id:`
+  tracked for resume.
+- **LAE run stream** (`POST /runs` `mode: "stream"`, `GET /runs/{id}/events?stream=true`):
+  `event: <type>` + `data: {v, type, seq, ts, run:{id}, payload}`; `seq` null on `stream.*`;
+  `X-Run-Id` / `X-Conversation-Id` headers. `text.delta` `{part_id, offset, text}` is written at its
+  UTF-16 offset (`TextAssembler`); answer = text parts in `part.start` order; terminal `run.end`
+  `{status, finish_reason, usage, error}`. An `Idempotency-Key` replay answers JSON (the run).
 - **Pagination** `{ data: T[], next_page: string | null }`, cursor sent as `?page=`.
 - **Webhooks** Standard Webhooks: `webhook-id`, `webhook-timestamp`, `webhook-signature` (`v1,<b64>`
   HMAC-SHA256 over `id.timestamp.body`, `whsec_` secret, 5-minute tolerance).
-- **AI SDK UI stream** `UIMessageChunk` JSON per SSE event, `[DONE]` dropped; reconnect GET answers
-  204 for "nothing to resume".
+- **AI SDK** `createLigaXTransport` translates LAE → `UIMessageChunk` in the browser and resolves
+  `reconnectToStream` to `null`; `createChatTransport` reads a route that already emits the AI SDK
+  UI stream (`UIMessageChunk` JSON per SSE event, `[DONE]` dropped, reconnect GET 204 = nothing).
 
 ## Spec and parity
 
-`SPEC_VERSION` (file) names the spec release tag. `pnpm sync-spec` downloads `openapi.json` and
-`conformance.tar.gz` from the `<org>/<slug>-spec` GitHub release; `pnpm gen:types` regenerates
-`packages/sdk/src/generated/types.ts`; CI runs `gen-types --check`. The Python SDK pins the same tag
-and runs the same fixtures.
+`SPEC_VERSION` (file) names the spec release tag — `public-api-spec-v0.3.0`; until the spec repo
+publishes assets `openapi/openapi.json` is copied by hand from `ligax-enterprise`. `pnpm sync-spec`
+downloads `openapi.json` and `conformance.tar.gz` from the `<org>/<slug>-spec` GitHub release;
+`pnpm gen:types` regenerates `packages/sdk/src/generated/types.ts`; CI runs `gen-types --check`. The
+Python SDK pins the same tag and runs the same fixtures.
 
 ## Environment variables
 

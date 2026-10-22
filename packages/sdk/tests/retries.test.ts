@@ -8,6 +8,7 @@ import {
   PaymentRequiredError,
   PermissionDeniedError,
   RateLimitError,
+  UnprocessableEntityError,
 } from '../src/core/errors.js';
 import { backoffDelay, retryDelay, shouldRetry } from '../src/core/base-client.js';
 import { json, scriptedFetch } from './helpers.js';
@@ -37,10 +38,10 @@ describe('retries', () => {
     const fetch = scriptedFetch([
       json({ error: { message: 'boom' } }, { status: 500 }),
       json({ error: { message: 'boom' } }, { status: 503 }),
-      json({ status: 'ok', version: '1' }),
+      json({ object: 'api_key', id: 'key_1' }),
     ]);
-    const result = await makeClient(fetch).health.get();
-    expect(result.status).toBe('ok');
+    const result = await makeClient(fetch).keys.self();
+    expect(result.object).toBe('api_key');
     expect(fetch.calls).toHaveLength(3);
   });
 
@@ -50,7 +51,7 @@ describe('retries', () => {
       json({ error: { message: 'boom' } }, { status: 500 }),
       json({ error: { message: 'boom' } }, { status: 500 }),
     ]);
-    await expect(makeClient(fetch).health.get()).rejects.toBeInstanceOf(InternalServerError);
+    await expect(makeClient(fetch).keys.self()).rejects.toBeInstanceOf(InternalServerError);
     expect(fetch.calls).toHaveLength(3);
   });
 
@@ -97,13 +98,14 @@ describe('retries', () => {
     }
   });
 
-  it('never retries 402 or 403, even when they would otherwise look retryable', async () => {
+  it('never retries 402, 403 or 422, even when they would otherwise look retryable', async () => {
     for (const [status, Err] of [
       [402, PaymentRequiredError],
       [403, PermissionDeniedError],
+      [422, UnprocessableEntityError],
     ] as const) {
       const fetch = scriptedFetch([json({ error: { message: 'no' } }, { status })]);
-      await expect(makeClient(fetch).health.get()).rejects.toBeInstanceOf(Err);
+      await expect(makeClient(fetch).keys.self()).rejects.toBeInstanceOf(Err);
       expect(fetch.calls).toHaveLength(1);
     }
     expect(
@@ -116,14 +118,14 @@ describe('retries', () => {
     const fetch = scriptedFetch([
       json({ error: { message: 'nope' } }, { status: 500, headers: { 'x-should-retry': 'false' } }),
     ]);
-    await expect(makeClient(fetch).health.get()).rejects.toBeInstanceOf(InternalServerError);
+    await expect(makeClient(fetch).keys.self()).rejects.toBeInstanceOf(InternalServerError);
     expect(fetch.calls).toHaveLength(1);
 
     const fetch2 = scriptedFetch([
       json({ error: { message: 'again' } }, { status: 400, headers: { 'x-should-retry': 'true' } }),
-      json({ status: 'ok', version: '1' }),
+      json({ object: 'api_key', id: 'key_1' }),
     ]);
-    await expect(makeClient(fetch2).health.get()).resolves.toMatchObject({ status: 'ok' });
+    await expect(makeClient(fetch2).keys.self()).resolves.toMatchObject({ object: 'api_key' });
   });
 
   it('retries 429 and reuses the same Idempotency-Key on every POST attempt', async () => {
@@ -151,7 +153,7 @@ describe('retries', () => {
 
   it('retries connection errors and surfaces APIConnectionError when exhausted', async () => {
     const fetch = scriptedFetch([new TypeError('fetch failed'), new TypeError('fetch failed')]);
-    await expect(makeClient(fetch, 1).health.get()).rejects.toBeInstanceOf(APIConnectionError);
+    await expect(makeClient(fetch, 1).keys.self()).rejects.toBeInstanceOf(APIConnectionError);
     expect(fetch.calls).toHaveLength(2);
   });
 
@@ -171,7 +173,7 @@ describe('retries', () => {
       timeout: 20,
       logger: silent,
     });
-    await expect(client.health.get()).rejects.toBeInstanceOf(APITimeoutError);
+    await expect(client.keys.self()).rejects.toBeInstanceOf(APITimeoutError);
   });
 
   it('does not retry when the caller aborted', async () => {
@@ -183,7 +185,7 @@ describe('retries', () => {
           req.init.signal?.addEventListener('abort', () => reject(req.init.signal?.reason));
         }),
     ]);
-    const promise = makeClient(fetch).health.get({ signal: controller.signal });
+    const promise = makeClient(fetch).keys.self({ signal: controller.signal });
     controller.abort();
     await expect(promise).rejects.toBeInstanceOf(APIConnectionError);
     expect(fetch.calls).toHaveLength(1);
@@ -193,6 +195,6 @@ describe('retries', () => {
     const fetch = scriptedFetch([
       json({ error: { message: 'x' } }, { status: 429, headers: { 'retry-after-ms': '1' } }),
     ]);
-    await expect(makeClient(fetch, 0).health.get()).rejects.toBeInstanceOf(RateLimitError);
+    await expect(makeClient(fetch, 0).keys.self()).rejects.toBeInstanceOf(RateLimitError);
   });
 });

@@ -41,9 +41,18 @@ importers:
 
   examples/nextjs-app:
     dependencies:
+      '@ai-sdk/react':
+        specifier: 4.0.152
+        version: 4.0.152(react@19.3.1)(zod@4.6.7)
+      '@ligaxai/react':
+        specifier: workspace:*
+        version: link:../../packages/react
       '@ligaxai/sdk':
         specifier: workspace:*
         version: link:../../packages/sdk
+      ai:
+        specifier: 7.0.148
+        version: 7.0.148(zod@4.6.7)
       next:
         specifier: 16.4.2
         version: 16.4.2(@types/node@24.19.2)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -117,9 +126,21 @@ importers:
         specifier: workspace:*
         version: link:../sdk
     devDependencies:
+      '@types/react':
+        specifier: 19.3.0
+        version: 19.3.0
+      '@types/react-dom':
+        specifier: 19.3.0
+        version: 19.3.0(@types/react@19.3.0)
       jsdom:
         specifier: 29.1.1
         version: 29.1.1
+      react:
+        specifier: 19.3.1
+        version: 19.3.1
+      react-dom:
+        specifier: 19.3.1
+        version: 19.3.1(react@19.3.1)
 
 packages:
 

@@ -1,0 +1,121 @@
+{
+  "events": [
+    {
+      "type": "stream.ready",
+      "seq": null,
+      "payload": {
+        "cursor": null
+      },
+      "runId": "run_lae_1",
+      "ts": "2026-10-22T10:00:00.000Z"
+    },
+    {
+      "type": "run.start",
+      "seq": 1,
+      "payload": {
+        "mode": "chat"
+      },
+      "runId": "run_lae_1",
+      "ts": "2026-10-22T10:00:00.010Z"
+    },
+    {
+      "type": "part.start",
+      "seq": 2,
+      "payload": {
+        "part_id": "p0",
+        "kind": "text",
+        "ord": 0,
+        "message_id": "m0"
+      },
+      "runId": "run_lae_1",
+      "ts": "2026-10-22T10:00:00.020Z"
+    },
+    {
+      "type": "reasoning.delta",
+      "seq": 3,
+      "payload": {
+        "part_id": "r0",
+        "offset": 0,
+        "text": "thinking"
+      },
+      "runId": "run_lae_1",
+      "ts": "2026-10-22T10:00:00.030Z"
+    },
+    {
+      "type": "text.delta",
+      "seq": 4,
+      "payload": {
+        "part_id": "p0",
+        "offset": 0,
+        "text": "Hello "
+      },
+      "runId": "run_lae_1",
+      "ts": "2026-10-22T10:00:00.040Z"
+    },
+    {
+      "type": "text.delta",
+      "seq": 5,
+      "payload": {
+        "part_id": "p0",
+        "offset": 6,
+        "text": "wörld 👋"
+      },
+      "runId": "run_lae_1",
+      "ts": "2026-10-22T10:00:00.050Z"
+    },
+    {
+      "type": "text.delta",
+      "seq": 4,
+      "payload": {
+        "part_id": "p0",
+        "offset": 0,
+        "text": "Hello "
+      },
+      "runId": "run_lae_1",
+      "ts": "2026-10-22T10:00:00.040Z"
+    },
+    {
+      "type": "some.future.event",
+      "seq": 6,
+      "payload": {
+        "x": 1
+      },
+      "runId": "run_lae_1",
+      "ts": "2026-10-22T10:00:00.060Z"
+    },
+    {
+      "type": "part.end",
+      "seq": 7,
+      "payload": {
+        "part_id": "p0"
+      },
+      "runId": "run_lae_1",
+      "ts": "2026-10-22T10:00:00.070Z"
+    },
+    {
+      "type": "stream.heartbeat",
+      "seq": null,
+      "payload": {},
+      "runId": "run_lae_1",
+      "ts": "2026-10-22T10:00:00.080Z"
+    },
+    {
+      "type": "run.end",
+      "seq": 8,
+      "payload": {
+        "status": "completed",
+        "finish_reason": "stop",
+        "usage": {
+          "tokens": {
+            "input": 10,
+            "output": 5
+          }
+        }
+      },
+      "runId": "run_lae_1",
+      "ts": "2026-10-22T10:00:00.090Z"
+    }
+  ],
+  "text": "Hello wörld 👋",
+  "status": "completed"
+}

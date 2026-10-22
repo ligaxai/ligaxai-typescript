@@ -5,6 +5,8 @@
  * mental model transfers.
  */
 
+import type { ConnectSession } from '../types.js';
+
 export class LigaXError extends Error {
   constructor(message: string, options?: ErrorOptions) {
     super(message, options);
@@ -64,6 +66,11 @@ export class APIError extends LigaXError {
     this.param = err?.param;
   }
 
+  /** camelCase alias of `request_id`. */
+  get requestId(): string | undefined {
+    return this.request_id;
+  }
+
   private static describe(status: number, body: unknown): string {
     if (body == null) return `${status} status code (no body)`;
     try {
@@ -106,7 +113,19 @@ export class APIError extends LigaXError {
 
 export class BadRequestError extends APIError {}
 export class AuthenticationError extends APIError {}
-export class PaymentRequiredError extends APIError {}
+/**
+ * 402 — the key's spend limit is reached (`key_limit_reached`), the organisation is out of credits
+ * (`insufficient_credits`) or has no plan (`payment_required`). Never retried: nothing changes until
+ * the window resets or someone adds funds.
+ */
+export class PaymentRequiredError extends APIError {
+  /** When the key's spend window resets (`X-Limit-Resets-At`), if the API said. */
+  get resetsAt(): Date | undefined {
+    const value = this.headers.get('x-limit-resets-at');
+    const date = value ? new Date(value) : undefined;
+    return date && !Number.isNaN(date.getTime()) ? date : undefined;
+  }
+}
 export class PermissionDeniedError extends APIError {}
 export class NotFoundError extends APIError {}
 export class ConflictError extends APIError {}
@@ -119,3 +138,34 @@ export class BrowserEnvironmentError extends LigaXError {}
 
 /** Raised by `@ligaxai/sdk/webhooks` when a signature does not verify. */
 export class WebhookVerificationError extends LigaXError {}
+
+/**
+ * Raised by `connectAccount()` when the flow cannot finish in the browser: the popup was blocked, or
+ * the user closed it before finishing. `session` is the connect session as last seen (absent when
+ * the popup was blocked before one was created). A `denied`/`failed`/`expired` session is not an
+ * error — `connectAccount()` resolves with it.
+ */
+export class ConnectAccountError extends LigaXError {
+  readonly reason: 'popup_blocked' | 'popup_closed';
+  readonly session: ConnectSession | undefined;
+
+  constructor(reason: ConnectAccountError['reason'], message: string, session?: ConnectSession) {
+    super(message);
+    this.reason = reason;
+    this.session = session;
+  }
+}
+
+/**
+ * A client-side wait ran out: `connectSessions.wait()` or `connectAccount()` saw the session still
+ * `pending` when its `timeoutMs` passed. Not a request timeout (that is `APITimeoutError`). The
+ * Python SDK raises its built-in `TimeoutError` at the same point. `session` is the last one seen.
+ */
+export class TimeoutError extends LigaXError {
+  readonly session: ConnectSession;
+
+  constructor(message: string, session: ConnectSession) {
+    super(message);
+    this.session = session;
+  }
+}

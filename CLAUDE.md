@@ -22,16 +22,18 @@ the project stands. This file holds the invariants.
 
 1. **The request pipeline lives in one place.** `packages/sdk/src/core/base-client.ts` owns auth,
    User-Agent, idempotency, retries, timeouts, request-id capture and parsing. A resource method is
-   a path plus a type (`src/resources/health.ts` is the reference). Never call `fetch` from a
-   resource, adapter or React hook.
+   a path plus a type (`src/resources/profiles.ts` is the reference; `runs.ts` adds `RunStream`).
+   Never call `fetch` from a resource, adapter or React hook.
 2. **Retry policy is a contract.** Retry on network errors, 408/409/429 and 5xx; honour
    `retry-after-ms`, then `retry-after` (seconds or HTTP-date, capped at 120 s), else 0.5 s → 8 s
-   with 25 % jitter; `x-should-retry` overrides; **never** retry 402/403; never retry once a stream
-   has started; the same `Idempotency-Key` is reused across attempts. The conformance fixtures and
-   Python SDK encode the same rules — change them together or not at all.
-3. **Secrets never reach a browser bundle.** The client throws in a browser-like environment unless
-   `dangerouslyAllowBrowser` is set; `react` and `widget` work with client tokens / publishable keys
-   only. The logger redacts `Authorization` at every level.
+   with 25 % jitter; `x-should-retry` overrides; **never** retry 402/403/422; never retry once a
+   stream has started; the same `Idempotency-Key` is reused across attempts. The conformance
+   fixtures and Python SDK encode the same rules — change them together or not at all.
+3. **Secrets never reach a browser bundle.** In a browser-like environment the client accepts only a
+   client token (`lgx_ct_`), a publishable key (`lgx_pk_`) or a token provider (whose answer is
+   checked per request); anything else throws unless `dangerouslyAllowBrowser` is set. `react` and
+   `widget` work with client tokens / publishable keys only. The logger redacts `Authorization` at
+   every level.
 4. **Optional peers are type-only.** `ai`, `next`, `@ai-sdk/react` are imported with `import type`
    and listed in `tsdown` `external`. Importing one at runtime makes it mandatory for every consumer
    — the React hook takes `useChat` as a parameter for exactly this reason.
@@ -52,9 +54,12 @@ the project stands. This file holds the invariants.
 ```
 packages/sdk     src/{client,index,errors,webhooks,next,ai-sdk,version}.ts
                  src/core/{base-client,errors,streaming,pagination,logging}.ts
-                 src/resources/{resource,health}.ts · src/generated/types.ts · tests/
+                 src/lib/{lae,run-stream,text-assembler}.ts · src/types.ts (aliases)
+                 src/resources/{resource,shared,runs,conversations,profiles,keys,usage}.ts
+                 src/generated/types.ts · tests/
 packages/react   src/{provider.tsx,chat.ts,index.ts} · tests/
-packages/widget  src/{index,global}.ts · tests/        (IIFE: dist/widget.global.js)
+packages/widget  src/{index,global,element,session,markdown,styles,react}.ts · tests/
+                 (IIFE: dist/widget.global.js; subpath ./react = <LigaXChat>)
 examples/nextjs-app   typechecked in CI, never built there
 conformance/     cases/*.json · sse/*.txt (+ .expected.json)
 scripts/         bootstrap.mjs · gen-types.mjs · sync-spec.mjs

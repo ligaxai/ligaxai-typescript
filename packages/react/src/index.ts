@@ -8,3 +8,10 @@ export type {
   UseChatOptions,
   UseChatPassThrough,
 } from './chat.js';
+export { useConnectAccount } from './connect.js';
+export type {
+  ConnectAccountState,
+  ConnectOptions,
+  UseConnectAccountOptions,
+  UseConnectAccountResult,
+} from './connect.js';

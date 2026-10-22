@@ -7,9 +7,13 @@
  * the spec produces (the CI drift gate).
  */
 import { execFileSync } from 'node:child_process';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { createRequire } from 'node:module';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+const require = createRequire(import.meta.url);
 
 const ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const SPEC = resolve(ROOT, 'openapi/openapi.json');
@@ -31,11 +35,61 @@ const banner = [
   '',
 ].join('\n');
 
-const generated = execFileSync(
-  'pnpm',
-  ['exec', 'openapi-typescript', SPEC, '--export-type', '--alphabetize', '--root-types'],
-  { cwd: ROOT, encoding: 'utf8' },
-);
+/**
+ * The platform builds each schema with zod's `toJSONSchema`, which emits a shared sub-schema as an
+ * inline `$defs` block plus `{"$ref": "#/$defs/RunStatus"}`. Inside a standalone JSON Schema that
+ * pointer is relative to the schema; inside an OpenAPI document it resolves against the document
+ * root, where no `$defs` exists, so openapi-typescript (correctly) refuses the spec. Rather than
+ * hand-edit the committed copy of the contract, hoist every `$defs` entry into
+ * `components.schemas` and rewrite the pointers — which also gives the shared shapes (`Run`,
+ * `RunStatus`, `Profile`, `RunEvent`) names in the generated output. Two `$defs` of the same name
+ * that differ would be a real ambiguity, so that fails loudly instead of picking one.
+ */
+function normalise(spec) {
+  const hoisted = {};
+  const visit = (node) => {
+    if (Array.isArray(node)) return node.forEach(visit);
+    if (!node || typeof node !== 'object') return;
+    if (node.$defs && typeof node.$defs === 'object') {
+      for (const [name, schema] of Object.entries(node.$defs)) {
+        const json = JSON.stringify(schema);
+        if (name in hoisted && JSON.stringify(hoisted[name]) !== json) {
+          throw new Error(`gen-types: two different $defs named ${name}; the spec is ambiguous.`);
+        }
+        hoisted[name] = schema;
+      }
+      delete node.$defs;
+    }
+    if (typeof node.$ref === 'string' && node.$ref.startsWith('#/$defs/')) {
+      node.$ref = `#/components/schemas/${node.$ref.slice('#/$defs/'.length)}`;
+    }
+    Object.values(node).forEach(visit);
+  };
+  visit(spec);
+  // Hoisted schemas can themselves carry `#/$defs/` pointers (Run -> RunStatus).
+  visit(hoisted);
+  spec.components ??= {};
+  spec.components.schemas = { ...spec.components.schemas, ...hoisted };
+  return spec;
+}
+
+const tmp = mkdtempSync(join(tmpdir(), 'gen-types-'));
+let generated;
+try {
+  const normalised = join(tmp, 'openapi.json');
+  writeFileSync(normalised, JSON.stringify(normalise(JSON.parse(readFileSync(SPEC, 'utf8')))));
+  // The CLI is run with this Node binary rather than through `pnpm exec`: on Windows the launcher is
+  // `pnpm.cmd`, which `execFileSync('pnpm')` cannot spawn (ENOENT on windows-latest), and a shell
+  // would bring quoting differences into a check whose whole job is byte-for-byte output.
+  const cli = join(dirname(require.resolve('openapi-typescript/package.json')), 'bin', 'cli.js');
+  generated = execFileSync(
+    process.execPath,
+    [cli, normalised, '--export-type', '--alphabetize', '--root-types'],
+    { cwd: ROOT, encoding: 'utf8' },
+  );
+} finally {
+  rmSync(tmp, { recursive: true, force: true });
+}
 const next = banner + generated;
 
 if (check) {

@@ -1,6 +1,17 @@
 import { WebhookVerificationError } from './core/errors.js';
+import type { WebhookEvent } from './types.js';
 
 export { WebhookVerificationError };
+export type {
+  ApiKeyLimitWebhookEvent,
+  ConnectionCreatedWebhookEvent,
+  ConnectionDeletedWebhookEvent,
+  ConnectionWebhookEvent,
+  RunWebhookEvent,
+  WebhookEvent,
+  WebhookEventType,
+  WebhookTestEvent,
+} from './types.js';
 
 /**
  * Standard Webhooks (https://www.standardwebhooks.com) verification with WebCrypto, so it runs
@@ -42,8 +53,12 @@ export class Webhook {
     );
   }
 
-  /** Resolve to the parsed JSON body on success; throw `WebhookVerificationError` otherwise. */
-  async verify<T = unknown>(
+  /**
+   * Resolve to the parsed JSON body on success; throw `WebhookVerificationError` otherwise. The body
+   * is typed as `WebhookEvent` (switch on `type`); the type parameter is a cast, not a check, and
+   * exists for receivers that verify something other than a LigaX event with this class.
+   */
+  async verify<T = WebhookEvent>(
     payload: string | Uint8Array,
     headers: WebhookHeaders | Headers | Record<string, string | undefined>,
     options: VerifyOptions = {},

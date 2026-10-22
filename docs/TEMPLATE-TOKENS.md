@@ -29,6 +29,7 @@ and prints a per-token count.
 ## Not tokens (edit by hand after bootstrap)
 
 - `security@ligaments.ai` in `SECURITY.md`.
-- `SPEC_VERSION` (`unset`) and the `health` example resource / generated-types stub.
+- `SPEC_VERSION` (`unset` on the template) and the resources / generated types (the template ships a
+  `health` example resource and a stub; this repo replaced them with the Agent API v0.1 surface).
 - The `Copyright 2026 … contributors` line in `LICENSE`.
 - `.nvmrc` if your team standardises on a different Node 22/24 patch.

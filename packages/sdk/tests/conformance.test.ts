@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { LigaX } from '../src/index.js';
 import * as errors from '../src/errors.js';
 import { Stream } from '../src/core/streaming.js';
+import { RunStream } from '../src/lib/run-stream.js';
 import { chunkedBody, scriptedFetch } from './helpers.js';
 
 /**
@@ -128,6 +129,21 @@ describe('conformance SSE transcripts', () => {
     const response = new Response(chunkedBody(pieces), {
       headers: { 'content-type': 'text/event-stream' },
     });
+
+    // `lae-*.txt` are LAE run streams: parsed into RunEvents, text assembled by offset.
+    if (file.startsWith('lae-')) {
+      const expected = JSON.parse(
+        readFileSync(join(dir, file.replace(/\.txt$/, '.expected.json')), 'utf8'),
+      ) as { events: unknown[]; text: string; status?: string };
+      const run = await RunStream.fromResponse(response, new AbortController());
+      const events: unknown[] = [];
+      for await (const event of run) events.push(event);
+      expect(events).toEqual(expected.events);
+      const result = await run.finalResult();
+      expect(result.text).toBe(expected.text);
+      if (expected.status !== undefined) expect(result.status).toBe(expected.status);
+      return;
+    }
     const stream = Stream.fromSSEResponse<unknown>(response, new AbortController());
     const events = await stream.toArray();
 

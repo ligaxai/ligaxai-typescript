@@ -374,7 +374,21 @@ describe('createLigaXTransport direct mode', () => {
     await expect(send(transport, 'chat_2')).rejects.toBeInstanceOf(PermissionDeniedError);
   });
 
-  it('requires a profile id', () => {
-    expect(() => createLigaXTransport({ getToken: () => 'lgx_ct_x' })).toThrow(/profileId/);
+  it('learns the profile from the token answer when no profileId is given', async () => {
+    const fetch = scriptedFetch([laeResponse(simpleRun('ok'))]);
+    const transport = createLigaXTransport({
+      getToken: async () => ({ token: 'lgx_ct_x', expires_at: null, profile_id: PROFILE }),
+      fetch,
+    });
+    await collect(await send(transport));
+    expect((fetch.calls[0]?.body as { profile_id: string }).profile_id).toBe(PROFILE);
+  });
+
+  it('fails clearly with no profile anywhere', async () => {
+    const transport = createLigaXTransport({
+      getToken: () => 'lgx_ct_x',
+      fetch: scriptedFetch([]),
+    });
+    await expect(send(transport)).rejects.toThrow(/profileId/);
   });
 });

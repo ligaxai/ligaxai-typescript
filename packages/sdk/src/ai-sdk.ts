@@ -143,7 +143,10 @@ export interface LigaXTransportOptions {
   getToken?: TokenFetcher | undefined;
   /** Direct mode: the API base URL. Default `https://enterprise.ligax.ai/api/public/v1`. */
   baseURL?: string | undefined;
-  /** Direct mode: the `prf_…` profile the token was minted for (required with `getToken`). */
+  /**
+   * Direct mode: the `prf_…` profile the token was minted for. Optional when `getToken` answers
+   * `{ token, expires_at, profile_id }` (as `createTokenRoute` does).
+   */
   profileId?: string | undefined;
   headers?:
     | Record<string, string>
@@ -239,15 +242,18 @@ function directTransport<M extends UIMessage>(
   options: LigaXTransportOptions,
   getToken: TokenFetcher,
 ): ChatTransport<M> {
-  const profileId = options.profileId;
-  if (!profileId) {
-    throw new TypeError('createLigaXTransport: `profileId` is required with `getToken`.');
-  }
-  const client = new LigaX({
-    apiKey: cachedTokenProvider(getToken),
-    baseURL: options.baseURL,
-    fetch: options.fetch,
+  let profileId = options.profileId;
+  // A token answer that names its profile (`createTokenRoute`, `POST /client_tokens`) is enough:
+  // the browser then needs no profile id of its own.
+  const tokens = cachedTokenProvider(async (context) => {
+    const value = await getToken(context);
+    if (!profileId && typeof value === 'object') {
+      const named = (value as { profile_id?: unknown }).profile_id;
+      if (typeof named === 'string' && named) profileId = named;
+    }
+    return value;
   });
+  const client = new LigaX({ apiKey: tokens, baseURL: options.baseURL, fetch: options.fetch });
   const conversations = new Map<string, string>();
 
   return {
@@ -259,6 +265,12 @@ function directTransport<M extends UIMessage>(
       const headers: Record<string, string> = { ...base };
       new Headers(opts.headers).forEach((value, key) => (headers[key] = value));
       const conversationId = conversations.get(opts.chatId);
+      if (!profileId) await tokens({ refresh: false });
+      if (!profileId) {
+        throw new TypeError(
+          'createLigaXTransport: pass `profileId`, or return `profile_id` from `getToken`.',
+        );
+      }
       const body: RunBody = {
         ...options.body,
         ...(opts.body as Record<string, unknown> | undefined),

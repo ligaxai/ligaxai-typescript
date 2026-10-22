@@ -6,6 +6,7 @@ import { Keys } from './resources/keys.js';
 import { Profiles } from './resources/profiles.js';
 import { Runs } from './resources/runs.js';
 import { Usage } from './resources/usage.js';
+import { Webhooks } from './resources/webhooks.js';
 
 export const DEFAULT_BASE_URL = 'https://enterprise.ligax.ai/api/public/v1';
 export const DEFAULT_TIMEOUT_MS = 600_000;
@@ -63,6 +64,7 @@ export class LigaX extends BaseClient {
   readonly profiles: Profiles;
   readonly keys: Keys;
   readonly usage: Usage;
+  readonly webhooks: Webhooks;
 
   constructor(options: ClientOptions = {}) {
     const apiKey = options.apiKey ?? readEnv('LIGAX_API_KEY');
@@ -96,5 +98,6 @@ export class LigaX extends BaseClient {
     this.profiles = new Profiles(this);
     this.keys = new Keys(this);
     this.usage = new Usage(this);
+    this.webhooks = new Webhooks(this);
   }
 }

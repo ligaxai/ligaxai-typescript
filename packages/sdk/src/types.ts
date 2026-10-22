@@ -4,7 +4,7 @@
  * drift from the contract. Field names are the wire's (snake_case) on purpose: the SDK passes bodies
  * through exactly as the API defines them, so the API reference and the types read the same.
  */
-import type { components, operations } from './generated/types.js';
+import type { components, operations, webhooks } from './generated/types.js';
 
 type JSONBody<Op extends keyof operations, Status extends number> = operations[Op] extends {
   responses: { [S in Status]: { content: { 'application/json': infer B } } };
@@ -49,6 +49,41 @@ export type ApiKeyInfo = JSONBody<'keys.self', 200>;
 
 export type Usage = JSONBody<'usage.get', 200>;
 export type UsageGroupBy = NonNullable<Usage['group_by']>;
+
+/** A webhook endpoint as the API returns it. The signing secret is never on this shape. */
+export type WebhookEndpoint = components['schemas']['WebhookEndpoint'];
+/** `POST /webhooks` answers with the endpoint plus `secret` (`whsec_…`) — shown once, store it now. */
+export type WebhookEndpointWithSecret = JSONBody<'webhooks.create', 201>;
+export type WebhookEndpointList = JSONBody<'webhooks.list', 200>;
+export type WebhookEndpointCreateParams = RequestBody<'webhooks.create'>;
+export type WebhookEndpointUpdateParams = RequestBody<'webhooks.update'>;
+export type WebhookEndpointDeleted = JSONBody<'webhooks.delete', 200>;
+/** One delivery attempt record; `webhooks.test` answers with the test event's. */
+export type WebhookDelivery = JSONBody<'webhooks.test', 200>;
+/** The event types an endpoint can subscribe to. `webhook.test` is not one of them. */
+export type WebhookEventType = WebhookEndpoint['event_types'][number];
+
+type WebhookBody<Name extends keyof webhooks> = webhooks[Name] extends {
+  post: { requestBody: { content: { 'application/json': infer B } } };
+}
+  ? B
+  : never;
+
+/** `run.completed | run.failed | run.canceled | run.requires_action`, as delivered. */
+export type RunWebhookEvent = WebhookBody<'run.completed'>;
+/** `api_key.limit_reached`: a key hit its spend limit for the window. */
+export type ApiKeyLimitWebhookEvent = WebhookBody<'api_key.limit_reached'>;
+/**
+ * Sent only by "Send test event" (`webhooks.test`) and not subscribable, so the spec's `webhooks`
+ * section does not describe it; the shape is the platform's `WebhookPayload` for that type.
+ */
+export interface WebhookTestEvent {
+  type: 'webhook.test';
+  timestamp: string;
+  data: { object: 'webhook_endpoint'; id: string };
+}
+/** Every body a LigaX webhook can carry. Switch on `type` to narrow. */
+export type WebhookEvent = RunWebhookEvent | ApiKeyLimitWebhookEvent | WebhookTestEvent;
 
 /** The API's error body. `param` names the offending field when there is one. */
 export type ErrorBody = JSONBody<'runs.get', 401>;

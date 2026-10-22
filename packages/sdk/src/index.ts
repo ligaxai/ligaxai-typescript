@@ -20,6 +20,7 @@ export { Profiles } from './resources/profiles.js';
 export { Keys } from './resources/keys.js';
 export { Usage } from './resources/usage.js';
 export type { UsageGetParams } from './resources/usage.js';
+export { Webhooks } from './resources/webhooks.js';
 export type { CallOptions, MutationOptions } from './resources/shared.js';
 
 export { RunStream } from './lib/run-stream.js';
@@ -29,6 +30,7 @@ export { TextAssembler } from './lib/text-assembler.js';
 export { TERMINAL_RUN_STATUSES, isTerminalStatus } from './types.js';
 export type {
   ApiKeyInfo,
+  ApiKeyLimitWebhookEvent,
   Conversation,
   EndUser,
   ErrorBody,
@@ -47,7 +49,18 @@ export type {
   RunOutput,
   RunStatus,
   RunUsage,
+  RunWebhookEvent,
   Usage as UsageReport,
   UsageGroupBy,
+  WebhookDelivery,
+  WebhookEndpoint,
+  WebhookEndpointCreateParams,
+  WebhookEndpointDeleted,
+  WebhookEndpointList,
+  WebhookEndpointUpdateParams,
+  WebhookEndpointWithSecret,
+  WebhookEvent,
+  WebhookEventType,
+  WebhookTestEvent,
 } from './types.js';
 export type * as Types from './generated/types.js';

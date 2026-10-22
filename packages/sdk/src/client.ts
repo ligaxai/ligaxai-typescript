@@ -1,6 +1,8 @@
-import { BaseClient, type Fetch } from './core/base-client.js';
+import { BaseClient, type ApiKeyProvider, type Fetch } from './core/base-client.js';
 import { BrowserEnvironmentError } from './core/errors.js';
 import { createLogger, type Logger, type LogLevel, parseLogLevel } from './core/logging.js';
+import { isBrowserCredential } from './lib/token-provider.js';
+import { ClientTokens } from './resources/client-tokens.js';
 import { Conversations } from './resources/conversations.js';
 import { Keys } from './resources/keys.js';
 import { Profiles } from './resources/profiles.js';
@@ -13,8 +15,12 @@ export const DEFAULT_TIMEOUT_MS = 600_000;
 export const DEFAULT_MAX_RETRIES = 2;
 
 export interface ClientOptions {
-  /** Defaults to `process.env.LIGAX_API_KEY`. */
-  apiKey?: string | undefined;
+  /**
+   * Defaults to `process.env.LIGAX_API_KEY`. On a server, a secret key (`lgx_sk_…`). In a browser, a
+   * client token (`lgx_ct_…`) — or a function that returns one, called before each request and
+   * again once when the API answers `401 token_expired` (see `cachedTokenProvider`).
+   */
+  apiKey?: string | ApiKeyProvider | undefined;
   /** Defaults to `process.env.LIGAX_BASE_URL`, then the production API. */
   baseURL?: string | undefined;
   /** Per-request timeout in ms. Default 10 minutes, matching long-running streamed calls. */
@@ -30,12 +36,19 @@ export interface ClientOptions {
   /** Route SDK logs into your own logger; the default is `console`. */
   logger?: Logger | undefined;
   /**
-   * The SDK refuses to run where `window` and `document` exist, because a secret API key in a
-   * browser bundle is a leaked key. Set this only when you are deliberately using a short-lived,
-   * publishable client token instead of a secret key.
+   * Where `window` and `document` exist the SDK only accepts a credential made for browsers — a
+   * client token (`lgx_ct_…`), a token provider, or a publishable key (`lgx_pk_…`) — because a
+   * secret key in a browser bundle is a leaked key. Setting this lifts that check; the API still
+   * refuses a secret key sent with an `Origin` header.
    */
   dangerouslyAllowBrowser?: boolean | undefined;
 }
+
+const BROWSER_MESSAGE =
+  "It looks like you're running in a browser-like environment with a key that is not a client " +
+  'token. This is refused because it risks exposing your secret API key. Mint a client token ' +
+  '(`lgx_ct_…`) on your server with `client.clientTokens.create()` and pass it — or a function ' +
+  'that fetches it — as `apiKey`.';
 
 function readEnv(name: string): string | undefined {
   // Guarded for runtimes without `process` (browsers, some edge runtimes).
@@ -56,10 +69,12 @@ export function isBrowserLike(): boolean {
  * requests. Resources hang off it as properties (`client.runs.create()`).
  */
 export class LigaX extends BaseClient {
+  /** The fixed key, when one was given; `undefined` when a token provider supplies it per request. */
   readonly apiKey: string | undefined;
   readonly baseURL: string;
 
   readonly runs: Runs;
+  readonly clientTokens: ClientTokens;
   readonly conversations: Conversations;
   readonly profiles: Profiles;
   readonly keys: Keys;
@@ -67,16 +82,22 @@ export class LigaX extends BaseClient {
   readonly webhooks: Webhooks;
 
   constructor(options: ClientOptions = {}) {
-    const apiKey = options.apiKey ?? readEnv('LIGAX_API_KEY');
+    const given = options.apiKey ?? readEnv('LIGAX_API_KEY');
     const baseURL = options.baseURL ?? readEnv('LIGAX_BASE_URL') ?? DEFAULT_BASE_URL;
+    const guarded = isBrowserLike() && options.dangerouslyAllowBrowser !== true;
 
-    if (isBrowserLike() && options.dangerouslyAllowBrowser !== true) {
-      throw new BrowserEnvironmentError(
-        "It looks like you're running in a browser-like environment. This is disabled by default " +
-          'because it risks exposing your secret API key. Use a client token from your own ' +
-          "backend and pass `dangerouslyAllowBrowser: true` to the client if that's what you want.",
-      );
+    if (guarded && typeof given !== 'function' && !(given && isBrowserCredential(given))) {
+      throw new BrowserEnvironmentError(BROWSER_MESSAGE);
     }
+    // A provider is only known by what it returns; hold each answer to the same rule.
+    const apiKey: string | ApiKeyProvider | undefined =
+      guarded && typeof given === 'function'
+        ? async (context) => {
+            const key = await given(context);
+            if (!isBrowserCredential(key)) throw new BrowserEnvironmentError(BROWSER_MESSAGE);
+            return key;
+          }
+        : given;
 
     const level = options.logLevel ?? parseLogLevel(readEnv('LIGAX_LOG'), 'LIGAX_LOG') ?? 'warn';
 
@@ -90,10 +111,11 @@ export class LigaX extends BaseClient {
       logger: createLogger(level, options.logger),
     });
 
-    this.apiKey = apiKey;
+    this.apiKey = typeof given === 'string' ? given : undefined;
     this.baseURL = baseURL;
 
     this.runs = new Runs(this);
+    this.clientTokens = new ClientTokens(this);
     this.conversations = new Conversations(this);
     this.profiles = new Profiles(this);
     this.keys = new Keys(this);

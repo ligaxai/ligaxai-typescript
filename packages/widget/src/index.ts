@@ -1,160 +1,121 @@
-import { LigaX, Stream } from '@ligaxai/sdk';
+import type { Fetch } from '@ligaxai/sdk';
+
+import { define, TAG_NAME, type LigaXChatElement } from './element.js';
 
 /**
- * `@ligaxai/widget` — a dependency-free chat panel for sites that are not React apps.
- * One `<script>` tag (the IIFE build) or `init()` from the library build mounts it.
+ * `@ligaxai/widget` — a chat assistant for any website: the framework-free custom element
+ * `<ligax-chat>` (Shadow DOM, so the host page's CSS cannot break it and it cannot break the page).
  *
- * It talks to the API with a **publishable key** (`pk_` — safe to embed; the API scopes it to a
- * single profile and origin), never a secret key, so `dangerouslyAllowBrowser` is correct here.
+ * The browser never holds a secret key. Either a **publishable key** opens an anonymous visitor
+ * session (`POST /widget/sessions`), or a **token URL** on your own site returns a client token for
+ * the signed-in user (`createTokenRoute` from `@ligaxai/sdk/next`). Runs stream with that token;
+ * the API holds it to one assistant, one user and the profile's allowed origins.
+ *
+ * Use it with one script tag (`dist/widget.global.js` mounts itself from its `data-*` attributes),
+ * `mount()` from a bundle, `<ligax-chat>` in markup after `define()`, or `<LigaXChat>` from
+ * `@ligaxai/widget/react`.
  */
 
-export interface WidgetTheme {
-  accent?: string | undefined;
-  background?: string | undefined;
-  text?: string | undefined;
-  radius?: string | undefined;
-}
+export {
+  define,
+  friendlyError,
+  getElementClass,
+  OBSERVED_ATTRIBUTES,
+  TAG_NAME,
+} from './element.js';
+export type { LigaXChatElement } from './element.js';
+export { renderMarkdown, safeHref } from './markdown.js';
 
 export interface WidgetOptions {
-  publishableKey: string;
-  profile: string;
+  /** `lgx_pk_…` — anonymous visitors. Needs `profileId`. */
+  publishableKey?: string | undefined;
+  /** `prf_…`. Optional with `tokenUrl` when your endpoint answers `profile_id`. */
+  profileId?: string | undefined;
+  /** Your endpoint that answers `{ token, expires_at, profile_id }` for the signed-in user. */
+  tokenUrl?: string | undefined;
+  /** The API base URL. Default `https://enterprise.ligax.ai/api/public/v1`. */
   baseURL?: string | undefined;
-  /** Element or selector to mount into. Default: a new `<div>` appended to `<body>`. */
-  container?: HTMLElement | string | undefined;
-  theme?: WidgetTheme | undefined;
-  /** Placeholder for the input. */
+  /** Panel heading. Default "Chat". */
+  title?: string | undefined;
+  /** First assistant message, shown locally (it is not sent to the agent). */
+  greeting?: string | undefined;
   placeholder?: string | undefined;
-  /** Override for tests. */
-  fetch?: typeof fetch | undefined;
+  position?: 'bottom-right' | 'bottom-left' | undefined;
+  /** Start with the panel open. */
+  open?: boolean | undefined;
+  /** Element or selector to append to. Default `document.body`. */
+  container?: HTMLElement | string | undefined;
+  /** Inject a `fetch` (tests, proxies). */
+  fetch?: Fetch | undefined;
 }
 
-export interface WidgetHandle {
-  root: HTMLElement;
-  send(text: string): Promise<void>;
-  destroy(): void;
-}
-
-/** The streamed event shape the widget understands; anything else is ignored. */
-interface ChatEvent {
-  type: string;
-  delta?: string;
-  message?: string;
-}
-
-const ROOT_ATTR = 'data-chat-widget';
-
-export function init(options: WidgetOptions): WidgetHandle {
+/** Create a `<ligax-chat>`, configure it and append it to the page. */
+export function mount(options: WidgetOptions): LigaXChatElement {
   if (typeof document === 'undefined') {
-    throw new Error('@ligaxai/widget needs a DOM; call init() in the browser');
+    throw new Error('@ligaxai/widget needs a DOM; call mount() in the browser.');
   }
-  const client = new LigaX({
-    apiKey: options.publishableKey,
-    baseURL: options.baseURL,
-    fetch: options.fetch,
-    dangerouslyAllowBrowser: true,
-  });
-
-  const container = resolveContainer(options.container);
-  const root = document.createElement('div');
-  root.setAttribute(ROOT_ATTR, '');
-  root.setAttribute('role', 'region');
-  root.setAttribute('aria-label', 'LigaX AI chat');
-  applyTheme(root, options.theme);
-  root.innerHTML = `
-    <style>${STYLES}</style>
-    <div class="bpw-log" aria-live="polite"></div>
-    <form class="bpw-form">
-      <input class="bpw-input" type="text" autocomplete="off" placeholder="${escapeHtml(options.placeholder ?? 'Ask a question…')}" />
-      <button class="bpw-send" type="submit">Send</button>
-    </form>`;
-  container.appendChild(root);
-
-  const log = root.querySelector<HTMLDivElement>('.bpw-log')!;
-  const form = root.querySelector<HTMLFormElement>('.bpw-form')!;
-  const input = root.querySelector<HTMLInputElement>('.bpw-input')!;
-  const button = root.querySelector<HTMLButtonElement>('.bpw-send')!;
-  let conversationId: string | undefined;
-  let active: Stream<ChatEvent> | undefined;
-
-  const append = (role: 'user' | 'assistant' | 'error', text: string): HTMLDivElement => {
-    const el = document.createElement('div');
-    el.className = `bpw-msg bpw-${role}`;
-    el.textContent = text;
-    log.appendChild(el);
-    log.scrollTop = log.scrollHeight;
-    return el;
+  define();
+  const el = document.createElement(TAG_NAME) as LigaXChatElement;
+  el.fetch = options.fetch;
+  const attrs: Record<string, string | undefined> = {
+    'publishable-key': options.publishableKey,
+    'profile-id': options.profileId,
+    'token-url': options.tokenUrl,
+    'base-url': options.baseURL,
+    'chat-title': options.title,
+    greeting: options.greeting,
+    placeholder: options.placeholder,
+    position: options.position,
   };
-
-  async function send(text: string): Promise<void> {
-    const trimmed = text.trim();
-    if (!trimmed) return;
-    append('user', trimmed);
-    const reply = append('assistant', '');
-    button.disabled = true;
-    try {
-      active = await client.post<Stream<ChatEvent>>('/runs', {
-        body: { profile: options.profile, input: trimmed, conversation_id: conversationId },
-        stream: true,
-      });
-      for await (const event of active) {
-        if (event.type === 'text.delta' && event.delta) reply.textContent += event.delta;
-        else if (event.type === 'error')
-          reply.textContent = event.message ?? 'Something went wrong.';
-        else if (
-          event.type === 'run.started' &&
-          typeof (event as { conversation_id?: string }).conversation_id === 'string'
-        ) {
-          conversationId = (event as { conversation_id?: string }).conversation_id;
-        }
-        log.scrollTop = log.scrollHeight;
-      }
-    } catch (error) {
-      reply.className = 'bpw-msg bpw-error';
-      reply.textContent = error instanceof Error ? error.message : 'Something went wrong.';
-    } finally {
-      active = undefined;
-      button.disabled = false;
-    }
-  }
-
-  const onSubmit = (event: Event) => {
-    event.preventDefault();
-    const text = input.value;
-    input.value = '';
-    void send(text);
-  };
-  form.addEventListener('submit', onSubmit);
-
-  return {
-    root,
-    send,
-    destroy() {
-      active?.abort();
-      form.removeEventListener('submit', onSubmit);
-      root.remove();
-    },
-  };
+  for (const [name, value] of Object.entries(attrs)) if (value) el.setAttribute(name, value);
+  if (options.open) el.setAttribute('open', '');
+  resolveContainer(options.container).appendChild(el);
+  return el;
 }
 
-/** Mount from `<script src="…/widget.global.js" data-publishable-key="pk_…" data-profile="support">`. */
-export function autoInit(doc: Document = document): WidgetHandle | undefined {
-  const script =
-    doc.currentScript ?? doc.querySelector<HTMLScriptElement>('script[data-publishable-key]');
-  const key = script?.getAttribute('data-publishable-key');
-  const profile = script?.getAttribute('data-profile');
-  if (!key || !profile) return undefined;
-  const mount = () =>
-    init({
-      publishableKey: key,
-      profile,
-      baseURL: script?.getAttribute('data-base-url') ?? undefined,
-      container: script?.getAttribute('data-container') ?? undefined,
+/**
+ * Mount from the script tag that loaded the widget:
+ *
+ * ```html
+ * <script src="https://unpkg.com/@ligaxai/widget/dist/widget.global.js"
+ *   data-publishable-key="lgx_pk_live_…" data-profile-id="prf_…" async></script>
+ * ```
+ *
+ * or `data-token-url="/api/ligax-token"` for signed-in users. Also read: `data-base-url`,
+ * `data-title`, `data-greeting`, `data-placeholder`, `data-position`, `data-open`.
+ */
+export function autoInit(
+  doc: Document = document,
+  script: HTMLScriptElement | null = (doc.currentScript as HTMLScriptElement | null) ??
+    doc.querySelector<HTMLScriptElement>('script[data-publishable-key], script[data-token-url]'),
+): Promise<LigaXChatElement | undefined> {
+  if (!script) return Promise.resolve(undefined);
+  const data = (name: string) => script.getAttribute(`data-${name}`) ?? undefined;
+  const publishableKey = data('publishable-key');
+  const tokenUrl = data('token-url');
+  const profileId = data('profile-id');
+  if (!tokenUrl && !(publishableKey && profileId)) return Promise.resolve(undefined);
+  const position = data('position');
+  const open = data('open');
+  const run = () =>
+    mount({
+      publishableKey,
+      profileId,
+      tokenUrl,
+      baseURL: data('base-url'),
+      title: data('title'),
+      greeting: data('greeting'),
+      placeholder: data('placeholder'),
+      position: position === 'bottom-left' ? 'bottom-left' : 'bottom-right',
+      open: open !== undefined && open !== 'false',
+      container: doc.body,
     });
   if (doc.readyState === 'loading') {
-    doc.addEventListener('DOMContentLoaded', () => mount(), { once: true });
-    return undefined;
+    return new Promise((resolve) =>
+      doc.addEventListener('DOMContentLoaded', () => resolve(run()), { once: true }),
+    );
   }
-  return mount();
+  return Promise.resolve(run());
 }
 
 function resolveContainer(container: WidgetOptions['container']): HTMLElement {
@@ -164,31 +125,5 @@ function resolveContainer(container: WidgetOptions['container']): HTMLElement {
     if (!el) throw new Error(`@ligaxai/widget: no element matches "${container}"`);
     return el;
   }
-  const el = document.createElement('div');
-  document.body.appendChild(el);
-  return el;
+  return document.body;
 }
-
-function applyTheme(root: HTMLElement, theme: WidgetTheme | undefined): void {
-  root.style.setProperty('--bpw-accent', theme?.accent ?? '#2563eb');
-  root.style.setProperty('--bpw-bg', theme?.background ?? '#ffffff');
-  root.style.setProperty('--bpw-text', theme?.text ?? '#111827');
-  root.style.setProperty('--bpw-radius', theme?.radius ?? '12px');
-}
-
-function escapeHtml(value: string): string {
-  return value.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
-}
-
-const STYLES = `
-[${ROOT_ATTR}]{position:fixed;right:16px;bottom:16px;width:min(360px,calc(100vw - 32px));height:480px;display:flex;flex-direction:column;background:var(--bpw-bg);color:var(--bpw-text);border-radius:var(--bpw-radius);box-shadow:0 10px 40px rgba(0,0,0,.18);font:14px/1.4 system-ui,sans-serif;overflow:hidden;z-index:2147483000}
-.bpw-log{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px}
-.bpw-msg{max-width:85%;padding:8px 12px;border-radius:var(--bpw-radius);white-space:pre-wrap;word-break:break-word}
-.bpw-user{align-self:flex-end;background:var(--bpw-accent);color:#fff}
-.bpw-assistant{align-self:flex-start;background:rgba(0,0,0,.06)}
-.bpw-error{align-self:flex-start;background:#fee2e2;color:#991b1b}
-.bpw-form{display:flex;gap:8px;padding:12px;border-top:1px solid rgba(0,0,0,.08)}
-.bpw-input{flex:1;padding:8px 10px;border:1px solid rgba(0,0,0,.15);border-radius:8px;font:inherit;color:inherit;background:transparent}
-.bpw-send{padding:8px 14px;border:0;border-radius:8px;background:var(--bpw-accent);color:#fff;font:inherit;cursor:pointer}
-.bpw-send:disabled{opacity:.5;cursor:default}
-`;

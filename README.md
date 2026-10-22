@@ -182,6 +182,44 @@ unsubscribe when they turn it off. Map "subscribe" to
 `client.webhooks.create({ url: hookUrl, event_types })` (keep the returned `id` and `secret`) and
 "unsubscribe" to `client.webhooks.delete(id)`.
 
+`webhooks.create` is safe to retry. The SDK sends an `Idempotency-Key` (one per call, reused across
+its retries), and the API answers a repeat with the endpoint it already made — the same `id` and
+`secret`, status `200`, `Idempotent-Replayed: true` — rather than creating a second one. If a
+subscribe step can itself run twice, pass a stable key so the guarantee survives a restart:
+`client.webhooks.create(body, { idempotencyKey: 'zap-sub-' + subscriptionId })`.
+
+### Files
+
+Upload a file, then attach its id to a run so the agent can read it:
+
+```ts
+import { readFile } from 'node:fs/promises';
+
+const file = await client.files.create({
+  data: await readFile('contract.pdf'),
+  filename: 'contract.pdf',
+  contentType: 'application/pdf',
+});
+const run = await client.runs.wait({
+  profile_id: 'prf_...',
+  input: 'Summarise the termination clause',
+  attachments: [file.id], // up to 10; also on runs.create and runs.stream
+});
+```
+
+`files.create` takes a `Blob` or `File` (an `<input type="file">` pick in the browser) or
+`{ data, filename, contentType? }` with raw bytes, and sends it as `multipart/form-data`. A secret
+key may name the end user the file belongs to (`files.create(file, { endUserId: user.id })`); a
+client token (scope `files:write`) always uploads for its own user, so a browser can upload its
+user's documents directly and only that user's runs can attach them.
+
+- **Limits.** 25 MB per file — a larger one throws `FileTooLargeError` before anything is sent — and
+  10 files per run. Whether a type can be read depends on the profile's model; a model that cannot
+  read it refuses the attachment.
+- **Lifetime.** Files are kept for 30 days. `files.get(id)` returns the metadata (`filename`,
+  `content_type`, `size_bytes`, `expires_at`) and `files.delete(id)` removes one early. There is no
+  download.
+
 ### Browser access (client tokens)
 
 A secret key (`lgx_sk_…`) never goes to a browser — the client refuses one there. To let a browser
@@ -348,11 +386,34 @@ Before it works:
 
 Optional attributes: `data-base-url` (non-production platform), `data-title`, `data-greeting`,
 `data-placeholder`, `data-position` (`bottom-right` | `bottom-left`), `data-open`, and
-`data-connectors="gmail,outlook"` (a "Connect your account" area — see the widget README). Theme it
-from your CSS with custom properties
-(`ligax-chat { --ligax-accent: #7c3aed; --ligax-radius: 8px }`); it follows `prefers-color-scheme`.
-In React, use `<LigaXChat publishableKey profileId />` from `@ligaxai/widget/react`. See
-[packages/widget/README.md](packages/widget/README.md) for the full reference and the bundle size.
+`data-connectors="gmail,outlook"` (a "Connect your account" area — see the widget README) and
+`data-files="true"` (a paperclip button: files go with the visitor's next message). Theme it from
+your CSS with custom properties (`ligax-chat { --ligax-accent: #7c3aed; --ligax-radius: 8px }`); it
+follows `prefers-color-scheme`. In React, use `<LigaXChat publishableKey profileId />` from
+`@ligaxai/widget/react`. See [packages/widget/README.md](packages/widget/README.md) for the full
+reference and the bundle size.
+
+### Use from MCP and A2A clients
+
+Every published agent profile is also an **MCP server** and an **A2A agent**, so Claude Code,
+Cursor, VS Code, agent frameworks and other agents can call it directly. No SDK code is involved —
+the client connects to the API with a secret key that has **Start runs** and **Read runs** (and
+**Read agent profiles** for the A2A card). Runs started this way are ordinary runs: the same spend
+limits, webhooks and audit trail.
+
+```bash
+claude mcp add --transport http ligax-support \
+  https://enterprise.ligax.ai/api/public/v1/mcp/prf_… \
+  --header "Authorization: Bearer $LIGAX_API_KEY"
+```
+
+The MCP server offers `ask`, `get_run` and `respond`. For A2A, the agent card is at
+`https://enterprise.ligax.ai/api/public/v1/a2a/prf_…/.well-known/agent-card.json` (send the same
+`Authorization` header) and the JSON-RPC endpoint is `…/a2a/prf_…` (A2A 1.0 and 0.3). Add
+`X-LigaX-End-User: <your user id>` to act for one of your users. The platform's
+`docs/public-api/mcp-and-a2a.md` guide covers client configuration, the tool and task mappings, and
+what is not supported yet (A2A file parts and push notifications — upload with `files.create` and
+pass `attachments` instead).
 
 ## Client options
 
@@ -382,7 +443,7 @@ pnpm test           # vitest across all packages
 pnpm changeset      # describe a user-facing change before opening a PR
 ```
 
-- `SPEC_VERSION` pins the public API spec tag (`public-api-spec-v0.3.0`); `openapi/openapi.json` is
+- `SPEC_VERSION` pins the public API spec tag (`public-api-spec-v0.5.0`); `openapi/openapi.json` is
   the contract and `pnpm gen:types` regenerates the typed models from it (`openapi/README.md`).
 - `examples/nextjs-app` is typechecked in CI but not built; run it with
   `pnpm --filter nextjs-app-example dev`.

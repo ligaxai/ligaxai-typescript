@@ -7,6 +7,26 @@ Repository-level changes (tooling, docs, CI). Package changelogs are written by 
 
 ## [Unreleased]
 
+### Added — Files, attachments and MCP/A2A docs (`feat/files-and-protocols`)
+
+- **Contract** — `openapi/openapi.json` re-copied (0.5.0): `POST /files`, `GET`/`DELETE /files/{id}`,
+  `attachments` on `POST /runs`, and the MCP (`/mcp/{profile_id}`) and A2A (`/a2a/{profile_id}`,
+  agent card) operations. `SPEC_VERSION` = `public-api-spec-v0.5.0`; generated types regenerated.
+- **SDK** — `client.files.create(file, { endUserId })` (a `Blob`/`File` or `{ data, filename,
+  contentType }`, sent as `multipart/form-data`; over 25 MB throws `FileTooLargeError` before
+  sending), `files.get`, `files.delete`; `FileObject` / `FileDeleted` aliases; `MAX_FILE_BYTES`.
+  The base client now sends a `FormData` body as is (no JSON `Content-Type`, so `fetch` sets the
+  boundary) and re-sends it with the same `Idempotency-Key` on retry. `runs.create/stream/wait`
+  carry `attachments` from the regenerated `RunCreateParams`.
+- **Webhooks** — `webhooks.create` already sent an `Idempotency-Key`; it now documents and tests the
+  platform's replay (`200`, `Idempotent-Replayed: true`, same endpoint and secret) and the retried
+  `409 idempotency_in_progress` (`x-should-retry: true`).
+- **Widget** — `data-files="true"` (`files` attribute / `mount()` option / `<LigaXChat files>`): a
+  paperclip button uploads with the widget's client token and sends the ids as `attachments` on the
+  next message.
+- **Docs** — README "Files" and "Use from MCP and A2A clients" (Claude Code `claude mcp add`
+  snippet, A2A card URL; no SDK code needed).
+
 ### Added — End users connect their own accounts (`feat/end-user-connections`)
 
 - **Contract** — `openapi/openapi.json` re-copied (0.3.0): `POST /connect_sessions`,

@@ -7,6 +7,23 @@ Repository-level changes (tooling, docs, CI). Package changelogs are written by 
 
 ## [Unreleased]
 
+### Added — Webhook endpoints (`feat/agent-api-v0.1`)
+
+- **Contract** — `openapi/openapi.json` re-copied from `ligax-enterprise/docs/public-api/spec`:
+  `/webhooks`, `/webhooks/{id}`, `/webhooks/{id}/test` (scope `webhooks:manage`) and the OpenAPI 3.1
+  `webhooks` section (`run.completed|failed|canceled|requires_action`, `api_key.limit_reached`).
+  Generated types regenerated; `SPEC_VERSION` unchanged (no new spec tag yet).
+- **`client.webhooks`** — `create` (returns the `whsec_` secret once), `list`, `get`, `update`,
+  `delete`, `test`; aliases `WebhookEndpoint`, `WebhookEndpointWithSecret`, `WebhookDelivery`,
+  `WebhookEventType`, and the `WebhookEvent` union (`RunWebhookEvent | ApiKeyLimitWebhookEvent |
+  WebhookTestEvent`).
+- **`/webhooks`** — `Webhook.verify()` now types its result as `WebhookEvent` by default and the
+  subpath re-exports the event types; tests pin the Standard Webhooks reference vector and a
+  two-signature rotation header.
+- **README** — a Webhooks guide: create and store the secret, verify the raw body in a Next.js
+  route handler, answer 2xx fast, dedupe on `webhook-id`, Zapier/Make/n8n REST-hook mapping.
+  (by @sadain, 2026-10-22)
+
 ### Added — Agent API v0.1 (`feat/agent-api-v0.1`)
 
 - **Contract** — `openapi/openapi.json` copied from `ligax-enterprise/docs/public-api/spec`,

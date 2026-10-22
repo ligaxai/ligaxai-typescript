@@ -5,11 +5,11 @@
 Official TypeScript packages for the **LigaX Agent API** — run the agents you configure in LigaX
 from your own software. Node 22+, ESM and CJS, works in Bun, Deno and workerd.
 
-| Package           | Use it for                                                                                                                                              |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@ligaxai/sdk`    | The API client: runs (wait, stream, poll), conversations, profiles, keys, usage, retries, errors. Subpaths: `/next`, `/ai-sdk`, `/webhooks`, `/errors`. |
-| `@ligaxai/react`  | `useLigaXChat` for Vercel AI SDK `useChat` apps.                                                                                                        |
-| `@ligaxai/widget` | A chat panel for any site: one `<script>` tag, no framework (preview — see below).                                                                      |
+| Package           | Use it for                                                                                                                                                        |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@ligaxai/sdk`    | The API client: runs (wait, stream, poll), conversations, profiles, keys, usage, webhooks, retries, errors. Subpaths: `/next`, `/ai-sdk`, `/webhooks`, `/errors`. |
+| `@ligaxai/react`  | `useLigaXChat` for Vercel AI SDK `useChat` apps.                                                                                                                  |
+| `@ligaxai/widget` | A chat panel for any site: one `<script>` tag, no framework (preview — see below).                                                                                |
 
 ## Quickstart
 
@@ -105,10 +105,81 @@ try {
 
 ### Webhooks
 
+LigaX can call your URL when a run finishes, fails, is canceled or needs an approval
+(`run.completed`, `run.failed`, `run.canceled`, `run.requires_action`), and when an API key reaches
+its spend limit (`api_key.limit_reached`). Managing endpoints needs a key with the `webhooks:manage`
+scope.
+
+**1. Create an endpoint and store its secret.** The signing secret (`whsec_…`) is in the create
+response and nowhere else — later reads show only `secret_hint`.
+
 ```ts
-import { Webhook } from '@ligaxai/sdk/webhooks';
-const event = await new Webhook(process.env.WEBHOOK_SECRET!).verify(rawBody, request.headers);
+const endpoint = await client.webhooks.create({
+  url: 'https://example.com/api/ligax-webhook',
+  event_types: ['run.completed', 'run.failed', 'run.requires_action'],
+  profile_ids: ['prf_...'], // optional: only runs of these profiles
+});
+await saveSecret(endpoint.id, endpoint.secret); // your secret store, not source control
+
+await client.webhooks.test(endpoint.id); // sends a `webhook.test` event; resolves with the delivery
 ```
+
+`list()`, `get(id)`, `update(id, { url?, description?, event_types?, profile_ids?, status? })` and
+`delete(id)` cover the rest; `update(id, { status: 'disabled' })` pauses an endpoint without losing
+it.
+
+**2. Verify every delivery against the raw body.** Deliveries are signed per
+[Standard Webhooks](https://www.standardwebhooks.com) (`webhook-id`, `webhook-timestamp`,
+`webhook-signature`; HMAC-SHA256, 5-minute tolerance, several signatures during a secret rotation).
+Verify the bytes you received — re-serialising parsed JSON changes them and the signature will not
+match. In a Next.js route handler:
+
+```ts
+// app/api/ligax-webhook/route.ts
+import { after } from 'next/server';
+import { Webhook, WebhookVerificationError } from '@ligaxai/sdk/webhooks';
+
+const webhook = new Webhook(process.env.LIGAX_WEBHOOK_SECRET!);
+
+export async function POST(request: Request) {
+  const body = await request.text(); // the raw body, not request.json()
+  const event = await webhook.verify(body, request.headers).catch((err: unknown) => {
+    if (err instanceof WebhookVerificationError) return null;
+    throw err;
+  }); // typed as WebhookEvent
+  if (!event) return new Response(null, { status: 400 });
+
+  const id = request.headers.get('webhook-id')!;
+  after(async () => {
+    if (await alreadyProcessed(id)) return; // deliveries are at-least-once: dedupe on webhook-id
+    switch (event.type) {
+      case 'run.completed':
+      case 'run.failed':
+      case 'run.canceled':
+      case 'run.requires_action':
+        await onRun(event.data); // { id, status, profile_id, conversation_id, metadata, ... }
+        break;
+      case 'api_key.limit_reached':
+        await onKeyLimit(event.data); // { id, name, limit_usd, spent_usd, resets_at, ... }
+        break;
+      case 'webhook.test':
+        break;
+    }
+    await markProcessed(id);
+  });
+  return new Response(null, { status: 204 });
+}
+```
+
+**3. Answer 2xx fast.** Anything other than a 2xx within 15 seconds counts as a failure and is
+retried on a backoff ladder, and an endpoint that keeps failing is disabled
+(`disabled_reason: 'failing'`). Acknowledge first and do the work afterwards (`after()` above, or a
+queue). A retry carries the same `webhook-id`, which is why that is the dedupe key.
+
+**Zapier, Make, n8n.** These platforms subscribe a REST hook when a user turns a trigger on and
+unsubscribe when they turn it off. Map "subscribe" to
+`client.webhooks.create({ url: hookUrl, event_types })` (keep the returned `id` and `secret`) and
+"unsubscribe" to `client.webhooks.delete(id)`.
 
 ### Widget
 

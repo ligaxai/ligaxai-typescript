@@ -33,12 +33,13 @@ string is a token listed in [`TEMPLATE-TOKENS.md`](./TEMPLATE-TOKENS.md) and rew
    `type`, `param`. Never retried: 402, 403, 422.
 6. **Agent API v0.1 resources** (spec `public-api-spec-v0.1.0`) — `runs` (`create`, `stream`,
    `wait`, `get`, `events`, `followEvents`, `cancel`, `resolveInterrupt`), `conversations.get`,
-   `profiles.list/get`, `keys.self`, `usage.get`. `RunStream` over the LAE event stream with
-   `TextAssembler` (offset-addressed, replay-safe text).
-7. **Subpaths** — `/errors`, `/webhooks` (Standard Webhooks with WebCrypto), `/next`
-   (`createRunRoute`, `createRunProxy`, generic `createRouteHandler`), `/ai-sdk`
-   (`createLigaXTransport` LAE → `UIMessageChunk`; `createChatTransport` for UI-message-stream
-   routes).
+   `profiles.list/get`, `keys.self`, `usage.get`, `webhooks` (`create/list/get/update/delete/ test`,
+   scope `webhooks:manage`). `RunStream` over the LAE event stream with `TextAssembler`
+   (offset-addressed, replay-safe text).
+7. **Subpaths** — `/errors`, `/webhooks` (Standard Webhooks with WebCrypto; `verify()` typed as the
+   `WebhookEvent` union, spec reference vector pinned), `/next` (`createRunRoute`, `createRunProxy`,
+   generic `createRouteHandler`), `/ai-sdk` (`createLigaXTransport` LAE → `UIMessageChunk`;
+   `createChatTransport` for UI-message-stream routes).
 8. **React** — `LigaXProvider`, `useLigaX`, `useLigaXTransport`, `useLigaXChat({ useChat, ... })` on
    the LAE transport.
 9. **Widget** — `init()` / `autoInit()`; ESM/CJS library plus IIFE `dist/widget.global.js` exposing

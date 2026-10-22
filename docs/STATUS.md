@@ -28,6 +28,11 @@ alongside every substantive change (see "Living docs" in [`CLAUDE.md`](../CLAUDE
   `TextAssembler`; `createLigaXTransport`; `createRunRoute` / `createRunProxy`; `useLigaXChat` on
   the LAE transport; working Next.js example. `pnpm check` green.
 
+- **Webhook endpoints (2026-10-22, `feat/agent-api-v0.1`, unpushed)** — spec re-copied with
+  `/webhooks*` and the outgoing-event `webhooks` section; `client.webhooks`
+  (`create/list/get/update/delete/test`); `Webhook.verify()` typed as `WebhookEvent`, Standard
+  Webhooks reference vector pinned; README Webhooks guide. `pnpm check` green.
+
 ## Unplanned Changes
 
 _None tracked yet._

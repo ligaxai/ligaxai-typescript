@@ -68,6 +68,17 @@ h2{flex:1;margin:0;font-size:15px;font-weight:600}
 .actions button:disabled{opacity:.5;cursor:default}
 form{display:flex;gap:8px;padding:10px;border-top:1px solid var(--_border)}
 textarea{flex:1;resize:none;max-height:120px;padding:8px 10px;border:1px solid var(--_border);border-radius:10px;font:inherit;color:inherit;background:transparent}
+.attach{width:36px;border:1px solid var(--_border);border-radius:10px;background:transparent;color:var(--_muted);display:grid;place-items:center}
+.attach svg{width:18px;height:18px}
+.attach:disabled{opacity:.5;cursor:default}
+.attachments{padding:8px 10px 0;display:flex;flex-direction:column;gap:6px}
+.chips{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+.chips li{display:flex;align-items:center;gap:4px;max-width:100%;padding:3px 4px 3px 10px;border:1px solid var(--_border);border-radius:999px;background:var(--_surface);font-size:12.5px}
+.chips span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chips .remove{border:0;background:transparent;color:var(--_muted);width:22px;height:22px;border-radius:50%;line-height:1}
+.chips .remove:disabled{opacity:.4;cursor:default}
+.attach-status{margin:0;color:var(--_danger);font-size:12.5px}.attach-status:empty{display:none}
+.msg-files{margin-top:4px;font-size:12px;opacity:.85}
 .send{padding:0 14px;border:0;border-radius:10px;background:var(--_accent);color:var(--_accent-text)}
 .send:disabled{opacity:.5;cursor:default}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}

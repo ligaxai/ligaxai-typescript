@@ -512,6 +512,173 @@ describe('connectorName', () => {
   });
 });
 
+describe('<ligax-chat> files', () => {
+  const FILE_ID = 'file_FFFFFFFFFFFFFFFFFFFFFFFF';
+  const stored = (over: Record<string, unknown> = {}) =>
+    json(
+      {
+        object: 'file',
+        id: FILE_ID,
+        filename: 'contract.pdf',
+        content_type: 'application/pdf',
+        size_bytes: 5,
+        end_user_id: 'visitor:abc',
+        created_at: '2026-10-22T10:00:00.000Z',
+        expires_at: '2026-11-21T10:00:00.000Z',
+        ...over,
+      },
+      201,
+    );
+  const attachButton = (el: LigaXChatElement) =>
+    shadow(el).querySelector<HTMLButtonElement>('.attach')!;
+  const chips = (el: LigaXChatElement) =>
+    [...shadow(el).querySelectorAll<HTMLElement>('.chips li span')].map((c) => c.textContent);
+  const status = (el: LigaXChatElement) =>
+    shadow(el).querySelector<HTMLElement>('.attach-status')!.textContent;
+
+  /** What the browser does when the visitor picks files in the dialog. */
+  function pick(el: LigaXChatElement, files: File[]): void {
+    const input = shadow(el).querySelector<HTMLInputElement>('input[type="file"]')!;
+    Object.defineProperty(input, 'files', { value: files, configurable: true });
+    input.dispatchEvent(new Event('change'));
+  }
+
+  it('has no attach button unless files are switched on', () => {
+    const fetch = fakeFetch({});
+    expect(attachButton(widget(fetch)).hidden).toBe(true);
+    expect(attachButton(widget(fetch, { files: true })).hidden).toBe(false);
+  });
+
+  it('reads data-files from the script tag', async () => {
+    const script = document.createElement('script');
+    script.setAttribute('data-publishable-key', 'lgx_pk_live_abc');
+    script.setAttribute('data-profile-id', PROFILE);
+    script.setAttribute('data-files', 'true');
+    const el = (await autoInit(document, script))!;
+    expect(el.hasAttribute('files')).toBe(true);
+    expect(attachButton(el).hidden).toBe(false);
+  });
+
+  it('the attach button opens the file picker', () => {
+    const el = widget(fakeFetch({}), { files: true });
+    const input = shadow(el).querySelector<HTMLInputElement>('input[type="file"]')!;
+    const click = vi.spyOn(input, 'click').mockImplementation(() => undefined);
+    attachButton(el).click();
+    expect(click).toHaveBeenCalledOnce();
+  });
+
+  it('uploads with the client token and sends the ids as attachments on the next message only', async () => {
+    const fetch = fakeFetch({
+      'POST /widget/sessions': session(),
+      'POST /files': stored(),
+      'POST /runs': [sse(answer('Read it')), sse(answer('Again'))],
+    });
+    const el = widget(fetch, { files: true });
+
+    pick(el, [new File(['%PDF-'], 'contract.pdf', { type: 'application/pdf' })]);
+    await vi.waitFor(() => expect(chips(el)).toEqual(['contract.pdf']));
+
+    const upload = fetch.calls.find((c) => c.url.endsWith('/files'))!;
+    expect(upload.headers.get('authorization')).toBe('Bearer lgx_ct_visitor.sig');
+    const form = upload.init.body as FormData;
+    expect((form.get('file') as File).name).toBe('contract.pdf');
+    expect(form.has('end_user_id')).toBe(false);
+
+    await el.send('Summarise this');
+    const runs = fetch.calls.filter((c) => c.url.endsWith('/runs'));
+    expect(runs[0]?.body).toMatchObject({ input: 'Summarise this', attachments: [FILE_ID] });
+    // The user bubble names the file; the chips are gone.
+    expect(shadow(el).querySelector('.msg.user .msg-files')?.textContent).toBe('contract.pdf');
+    expect(chips(el)).toEqual([]);
+
+    await el.send('And now?');
+    expect(runs.length).toBe(1);
+    const second = fetch.calls.filter((c) => c.url.endsWith('/runs'))[1];
+    expect(second?.body).not.toHaveProperty('attachments');
+  });
+
+  it('a removed chip is not sent', async () => {
+    const fetch = fakeFetch({
+      'POST /widget/sessions': session(),
+      'POST /files': stored(),
+      'POST /runs': sse(answer('ok')),
+    });
+    const el = widget(fetch, { files: true });
+    pick(el, [new File(['x'], 'x.txt')]);
+    await vi.waitFor(() => expect(chips(el)).toEqual(['x.txt']));
+    shadow(el).querySelector<HTMLButtonElement>('.chips .remove')!.click();
+    expect(chips(el)).toEqual([]);
+    await el.send('hi');
+    expect(fetch.calls.find((c) => c.url.endsWith('/runs'))?.body).not.toHaveProperty(
+      'attachments',
+    );
+  });
+
+  it('refuses a file over 25 MB without uploading it', async () => {
+    const fetch = fakeFetch({});
+    const el = widget(fetch, { files: true });
+    const big = new File(['x'], 'huge.mov');
+    Object.defineProperty(big, 'size', { value: 25 * 1024 * 1024 + 1 });
+    pick(el, [big]);
+    await vi.waitFor(() => expect(status(el)).toMatch(/huge\.mov is too large/));
+    expect(chips(el)).toEqual([]);
+    expect(fetch.calls).toHaveLength(0);
+  });
+
+  it('says so when an upload fails, without the API body', async () => {
+    const fetch = fakeFetch({
+      'POST /widget/sessions': session(),
+      'POST /files': json(
+        { error: { type: 'permission_error', code: 'insufficient_scope', message: 'raw detail' } },
+        403,
+      ),
+    });
+    const el = widget(fetch, { files: true });
+    pick(el, [new File(['x'], 'x.txt')]);
+    await vi.waitFor(() => expect(status(el)).toMatch(/x\.txt could not be attached/));
+    expect(status(el)).not.toContain('raw detail');
+    expect(chips(el)).toEqual([]);
+  });
+
+  it('keeps the conversation when an attached file has expired', async () => {
+    sessionStorage.setItem(`ligax.conversation.${PROFILE}`, CONV);
+    const fetch = fakeFetch({
+      'POST /widget/sessions': session(),
+      'POST /files': stored(),
+      'POST /runs': json(
+        {
+          error: {
+            type: 'not_found_error',
+            code: 'file_not_found',
+            message: 'No file is available for this run.',
+            param: 'attachments',
+          },
+        },
+        404,
+      ),
+    });
+    const el = widget(fetch, { files: true });
+    pick(el, [new File(['x'], 'x.txt')]);
+    await vi.waitFor(() => expect(chips(el)).toEqual(['x.txt']));
+    await el.send('hi');
+    expect(shadow(el).querySelector('.msg.error')?.textContent).toMatch(/no longer available/);
+    expect(sessionStorage.getItem(`ligax.conversation.${PROFILE}`)).toBe(CONV);
+    expect(chips(el)).toEqual([]);
+    expect(fetch.calls.filter((c) => c.url.endsWith('/runs'))).toHaveLength(1);
+  });
+
+  it('never puts a file name into HTML', async () => {
+    const fetch = fakeFetch({
+      'POST /widget/sessions': session(),
+      'POST /files': stored(),
+    });
+    const el = widget(fetch, { files: true });
+    pick(el, [new File(['x'], '<img src=x onerror=alert(1)>.txt')]);
+    await vi.waitFor(() => expect(chips(el)).toEqual(['<img src=x onerror=alert(1)>.txt']));
+    expect(shadow(el).querySelector('.chips img')).toBeNull();
+  });
+});
+
 describe('friendlyError', () => {
   const err = (status: number, code?: string) =>
     APIError.generate(status, { error: { code, message: 'raw' } }, undefined, new Headers());
@@ -520,6 +687,7 @@ describe('friendlyError', () => {
     expect(friendlyError(err(401), false)).toMatch(/session has ended/);
     expect(friendlyError(err(403, 'origin_not_allowed'), false)).toMatch(/not enabled/);
     expect(friendlyError(err(429), false)).toMatch(/too quickly/);
+    expect(friendlyError(err(413, 'file_too_large'), false)).toBe('Files can be up to 25 MB.');
     expect(friendlyError(new Error('boom'), false)).not.toContain('boom');
   });
 });

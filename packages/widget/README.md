@@ -39,6 +39,7 @@ hash if you serve it from a CDN. The script defines `window.LigaXWidget` (`mount
 | `data-position`        | `bottom-right` (default) or `bottom-left`.                                                        |
 | `data-open`            | Start with the panel open.                                                                        |
 | `data-connectors`      | Comma-separated connector keys (`gmail,outlook`): a "Connect your account" area, one button each. |
+| `data-files`           | `"true"` shows a paperclip button: the visitor attaches files to their next message.              |
 
 ## Before it works
 
@@ -108,6 +109,13 @@ register the element and write it in markup: `define()`, then
   agent; if the switch is off (`409 end_user_connections_off`) the area hides itself. A blocked
   popup, a declined consent or a connector that cannot be connected here each get a one-line
   message.
+- **Files.** With `data-files="true"` (or `files: true` in `mount()` / `<LigaXChat files>`), a
+  paperclip button opens the file picker. Each file (up to 25 MB, 10 per message) is uploaded at
+  once with `POST /files` using the widget's own client token — so it belongs to that visitor and
+  only their runs can attach it — and shown as a chip with a remove button. Send waits for uploads
+  to finish, then the ids go with the next message as `attachments` and the chips clear. A file over
+  25 MB is refused before upload; whether a type can be read depends on the profile's model. Names
+  are shown with `textContent` only.
 - **Accessibility.** The launcher is a labelled button with `aria-expanded`; opening moves focus to
   the composer, `Esc` closes and returns focus; Enter sends, Shift+Enter adds a line; the log is an
   `aria-live` region and a streaming answer is `aria-busy` until it finishes.

@@ -9,8 +9,11 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { createRequire } from 'node:module';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+const require = createRequire(import.meta.url);
 
 const ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const SPEC = resolve(ROOT, 'openapi/openapi.json');
@@ -75,9 +78,13 @@ let generated;
 try {
   const normalised = join(tmp, 'openapi.json');
   writeFileSync(normalised, JSON.stringify(normalise(JSON.parse(readFileSync(SPEC, 'utf8')))));
+  // The CLI is run with this Node binary rather than through `pnpm exec`: on Windows the launcher is
+  // `pnpm.cmd`, which `execFileSync('pnpm')` cannot spawn (ENOENT on windows-latest), and a shell
+  // would bring quoting differences into a check whose whole job is byte-for-byte output.
+  const cli = join(dirname(require.resolve('openapi-typescript/package.json')), 'bin', 'cli.js');
   generated = execFileSync(
-    'pnpm',
-    ['exec', 'openapi-typescript', normalised, '--export-type', '--alphabetize', '--root-types'],
+    process.execPath,
+    [cli, normalised, '--export-type', '--alphabetize', '--root-types'],
     { cwd: ROOT, encoding: 'utf8' },
   );
 } finally {

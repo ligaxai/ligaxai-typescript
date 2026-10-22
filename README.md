@@ -356,7 +356,9 @@ when the agent asks before acting, and friendly errors. One script tag:
 ```html
 <!-- Anonymous visitors: a publishable key -->
 <script
-  src="https://unpkg.com/@ligaxai/widget/dist/widget.global.js"
+  src="https://cdn.jsdelivr.net/npm/@ligaxai/widget@0.1.0/dist/widget.global.js"
+  integrity="sha384-…"
+  crossorigin="anonymous"
   data-publishable-key="lgx_pk_live_…"
   data-profile-id="prf_…"
   data-title="Acme support"
@@ -366,7 +368,9 @@ when the agent asks before acting, and friendly errors. One script tag:
 
 <!-- Signed-in users: your own token endpoint (e.g. createTokenRoute above) -->
 <script
-  src="https://unpkg.com/@ligaxai/widget/dist/widget.global.js"
+  src="https://cdn.jsdelivr.net/npm/@ligaxai/widget@0.1.0/dist/widget.global.js"
+  integrity="sha384-…"
+  crossorigin="anonymous"
   data-token-url="/api/ligax-token"
   async
 ></script>

@@ -175,7 +175,7 @@ export class WebhookVerificationError extends LigaXError {}
  * error — `connectAccount()` resolves with it.
  */
 export class ConnectAccountError extends LigaXError {
-  readonly reason: 'popup_blocked' | 'popup_closed';
+  readonly reason: 'popup_blocked' | 'popup_closed' | 'invalid_connect_url';
   readonly session: ConnectSession | undefined;
 
   constructor(reason: ConnectAccountError['reason'], message: string, session?: ConnectSession) {

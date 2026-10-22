@@ -13,6 +13,8 @@ export interface ConnectPopup {
   readonly closed: boolean;
   close(): void;
   location: { href: string };
+  /** Cleared before navigating, so the consent page cannot script this page. */
+  opener?: unknown;
 }
 
 export interface ConnectAccountOptions {
@@ -116,7 +118,28 @@ export async function connectAccount(
     const created = await client.connectSessions.create(body, call);
     if (isTerminal(created) || !created.connect_url) return created;
 
-    popup.location.href = created.connect_url;
+    // Only ever a provider's https consent page: never `javascript:` or `data:` in the user's popup.
+    let target: URL | null = null;
+    try {
+      target = new URL(created.connect_url);
+    } catch {
+      target = null;
+    }
+    if (!target || target.protocol !== 'https:') {
+      closeQuietly(popup);
+      throw new ConnectAccountError(
+        'invalid_connect_url',
+        'The connect link is not an https URL.',
+        created,
+      );
+    }
+    // The consent page must not be able to reach back into this page (reverse tabnabbing).
+    try {
+      popup.opener = null;
+    } catch {
+      /* some browsers make it read-only; nothing to do */
+    }
+    popup.location.href = target.href;
 
     let session = created;
     let pollsSinceClose = 0;

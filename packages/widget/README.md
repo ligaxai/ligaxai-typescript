@@ -9,7 +9,9 @@ wants to act, keeps the conversation for the tab, and never holds a secret key.
 ```html
 <!-- Anonymous visitors -->
 <script
-  src="https://unpkg.com/@ligaxai/widget/dist/widget.global.js"
+  src="https://cdn.jsdelivr.net/npm/@ligaxai/widget@0.1.0/dist/widget.global.js"
+  integrity="sha384-…"
+  crossorigin="anonymous"
   data-publishable-key="lgx_pk_live_…"
   data-profile-id="prf_…"
   async
@@ -17,15 +19,20 @@ wants to act, keeps the conversation for the tab, and never holds a secret key.
 
 <!-- Signed-in users: your own endpoint mints the token -->
 <script
-  src="https://unpkg.com/@ligaxai/widget/dist/widget.global.js"
+  src="https://cdn.jsdelivr.net/npm/@ligaxai/widget@0.1.0/dist/widget.global.js"
+  integrity="sha384-…"
+  crossorigin="anonymous"
   data-token-url="/api/ligax-token"
   async
 ></script>
 ```
 
-Pin a version in production (`@ligaxai/widget@x.y.z/dist/widget.global.js`) and add an `integrity`
-hash if you serve it from a CDN. The script defines `window.LigaXWidget` (`mount`, `define`,
-`autoInit`).
+**Always pin an exact version and its `integrity` hash.** The script runs on your page with your
+visitors' sessions, so an unpinned URL lets whatever the CDN serves next run there too. Take the
+hash for the version you pin from that version's page on jsDelivr (copy the SRI), or compute it:
+`curl -s <the URL> | openssl dgst -sha384 -binary | openssl base64 -A`. Upgrading means changing
+both together. You can also self-host the file from `@ligaxai/widget/dist/`. The script defines
+`window.LigaXWidget` (`mount`, `define`, `autoInit`).
 
 | Attribute              | Meaning                                                                                                                 |
 | ---------------------- | ----------------------------------------------------------------------------------------------------------------------- |

@@ -242,13 +242,17 @@ export class BaseClient {
   }
 }
 
-/** Server says explicitly, else: retry on timeout/conflict/throttle/5xx, never on 402/403. */
+/**
+ * Server says explicitly, else: retry on timeout/conflict/throttle/5xx. Never on 402 (a spend limit
+ * or credits — retrying spends nothing and changes nothing), 403 (a scope the key lacks) or 422 (the
+ * request itself is wrong, e.g. an `Idempotency-Key` reused with a different body).
+ */
 export function shouldRetry(response: Response): boolean {
   const override = response.headers.get('x-should-retry');
   if (override === 'true') return true;
   if (override === 'false') return false;
   const s = response.status;
-  if (s === 402 || s === 403) return false;
+  if (s === 402 || s === 403 || s === 422) return false;
   return s === 408 || s === 409 || s === 429 || s >= 500;
 }
 
@@ -275,8 +279,13 @@ export function backoffDelay(attempt: number): number {
   return Math.round(base * jitter);
 }
 
-function sleep(ms: number, signal: AbortSignal | null | undefined): Promise<void> {
+/** Wait `ms`, rejecting with `APIConnectionError` if `signal` aborts first. */
+export function sleep(ms: number, signal: AbortSignal | null | undefined): Promise<void> {
   return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(new APIConnectionError('Request was aborted.'));
+      return;
+    }
     const timer = setTimeout(() => {
       signal?.removeEventListener('abort', onAbort);
       resolve();

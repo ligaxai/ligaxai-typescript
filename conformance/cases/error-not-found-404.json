@@ -1,0 +1,36 @@
+{
+  "name": "404 run_not_found maps to NotFoundError",
+  "request": {
+    "method": "GET",
+    "path": "/runs/missing-run",
+    "headers": {
+      "authorization": "Bearer *"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 404,
+    "headers": {
+      "content-type": "application/json",
+      "x-request-id": "req_conf_404"
+    },
+    "body": {
+      "error": {
+        "type": "not_found_error",
+        "code": "run_not_found",
+        "message": "No run with that id is available to this key.",
+        "request_id": "req_conf_404",
+        "param": "run_id"
+      }
+    }
+  },
+  "expect": {
+    "call": "runs.get",
+    "args": ["missing-run"],
+    "error": {
+      "class": "NotFoundError",
+      "status": 404,
+      "code": "run_not_found"
+    }
+  }
+}

@@ -64,6 +64,11 @@ export class APIError extends LigaXError {
     this.param = err?.param;
   }
 
+  /** camelCase alias of `request_id`. */
+  get requestId(): string | undefined {
+    return this.request_id;
+  }
+
   private static describe(status: number, body: unknown): string {
     if (body == null) return `${status} status code (no body)`;
     try {
@@ -106,7 +111,19 @@ export class APIError extends LigaXError {
 
 export class BadRequestError extends APIError {}
 export class AuthenticationError extends APIError {}
-export class PaymentRequiredError extends APIError {}
+/**
+ * 402 — the key's spend limit is reached (`key_limit_reached`), the organisation is out of credits
+ * (`insufficient_credits`) or has no plan (`payment_required`). Never retried: nothing changes until
+ * the window resets or someone adds funds.
+ */
+export class PaymentRequiredError extends APIError {
+  /** When the key's spend window resets (`X-Limit-Resets-At`), if the API said. */
+  get resetsAt(): Date | undefined {
+    const value = this.headers.get('x-limit-resets-at');
+    const date = value ? new Date(value) : undefined;
+    return date && !Number.isNaN(date.getTime()) ? date : undefined;
+  }
+}
 export class PermissionDeniedError extends APIError {}
 export class NotFoundError extends APIError {}
 export class ConflictError extends APIError {}

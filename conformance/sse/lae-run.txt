@@ -1,0 +1,34 @@
+event: stream.ready
+data: {"v":1,"type":"stream.ready","seq":null,"ts":"2026-10-22T10:00:00.000Z","run":{"id":"run_lae_1"},"payload":{"cursor":null}}
+
+: keep-alive
+
+event: run.start
+data: {"v":1,"type":"run.start","seq":1,"ts":"2026-10-22T10:00:00.010Z","run":{"id":"run_lae_1"},"payload":{"mode":"chat"}}
+
+event: part.start
+data: {"v":1,"type":"part.start","seq":2,"ts":"2026-10-22T10:00:00.020Z","run":{"id":"run_lae_1"},"payload":{"part_id":"p0","kind":"text","ord":0,"message_id":"m0"}}
+
+event: reasoning.delta
+data: {"v":1,"type":"reasoning.delta","seq":3,"ts":"2026-10-22T10:00:00.030Z","run":{"id":"run_lae_1"},"payload":{"part_id":"r0","offset":0,"text":"thinking"}}
+
+event: text.delta
+data: {"v":1,"type":"text.delta","seq":4,"ts":"2026-10-22T10:00:00.040Z","run":{"id":"run_lae_1"},"payload":{"part_id":"p0","offset":0,"text":"Hello "}}
+
+event: text.delta
+data: {"v":1,"type":"text.delta","seq":5,"ts":"2026-10-22T10:00:00.050Z","run":{"id":"run_lae_1"},"payload":{"part_id":"p0","offset":6,"text":"wörld 👋"}}
+
+event: text.delta
+data: {"v":1,"type":"text.delta","seq":4,"ts":"2026-10-22T10:00:00.040Z","run":{"id":"run_lae_1"},"payload":{"part_id":"p0","offset":0,"text":"Hello "}}
+
+event: some.future.event
+data: {"v":1,"type":"some.future.event","seq":6,"ts":"2026-10-22T10:00:00.060Z","run":{"id":"run_lae_1"},"payload":{"x":1}}
+
+event: part.end
+data: {"v":1,"type":"part.end","seq":7,"ts":"2026-10-22T10:00:00.070Z","run":{"id":"run_lae_1"},"payload":{"part_id":"p0"}}
+
+event: stream.heartbeat
+data: {"v":1,"type":"stream.heartbeat","seq":null,"ts":"2026-10-22T10:00:00.080Z","run":{"id":"run_lae_1"},"payload":{}}
+
+event: run.end
+data: {"v":1,"type":"run.end","seq":8,"ts":"2026-10-22T10:00:00.090Z","run":{"id":"run_lae_1"},"payload":{"status":"completed","finish_reason":"stop","usage":{"tokens":{"input":10,"output":5}}}}

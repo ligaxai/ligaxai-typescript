@@ -1,7 +1,12 @@
 import { BaseClient, type Fetch } from './core/base-client.js';
 import { BrowserEnvironmentError } from './core/errors.js';
 import { createLogger, type Logger, type LogLevel, parseLogLevel } from './core/logging.js';
-import { Health } from './resources/health.js';
+import { Conversations } from './resources/conversations.js';
+import { Keys } from './resources/keys.js';
+import { Profiles } from './resources/profiles.js';
+import { Runs } from './resources/runs.js';
+import { Usage } from './resources/usage.js';
+import { Webhooks } from './resources/webhooks.js';
 
 export const DEFAULT_BASE_URL = 'https://enterprise.ligax.ai/api/public/v1';
 export const DEFAULT_TIMEOUT_MS = 600_000;
@@ -48,13 +53,18 @@ export function isBrowserLike(): boolean {
 
 /**
  * The LigaX AI API client. One instance per API key; it is safe to share across
- * requests. Resources hang off it as properties (`client.health.get()`).
+ * requests. Resources hang off it as properties (`client.runs.create()`).
  */
 export class LigaX extends BaseClient {
   readonly apiKey: string | undefined;
   readonly baseURL: string;
 
-  readonly health: Health;
+  readonly runs: Runs;
+  readonly conversations: Conversations;
+  readonly profiles: Profiles;
+  readonly keys: Keys;
+  readonly usage: Usage;
+  readonly webhooks: Webhooks;
 
   constructor(options: ClientOptions = {}) {
     const apiKey = options.apiKey ?? readEnv('LIGAX_API_KEY');
@@ -83,6 +93,11 @@ export class LigaX extends BaseClient {
     this.apiKey = apiKey;
     this.baseURL = baseURL;
 
-    this.health = new Health(this);
+    this.runs = new Runs(this);
+    this.conversations = new Conversations(this);
+    this.profiles = new Profiles(this);
+    this.keys = new Keys(this);
+    this.usage = new Usage(this);
+    this.webhooks = new Webhooks(this);
   }
 }

@@ -10,7 +10,7 @@ alongside every substantive change (see "Living docs" in [`CLAUDE.md`](../CLAUDE
 | Plan ID | Title                                                                                                | Size | Date       | Author  | Status      | Review |
 | ------- | ---------------------------------------------------------------------------------------------------- | ---- | ---------- | ------- | ----------- | ------ |
 | SDK-0   | Project base setup — TypeScript SDK monorepo template (`ligax-enterprise` PLAN-2026-10-22-sdk-repos) | 🔴 L | 2026-10-22 | @sadain | implemented | —      |
-| SDK-1   | First spec tag → `SPEC_VERSION`, generated types, real resources                                     | 🟡 M | —          | —       | planned     | —      |
+| SDK-1   | First spec tag → `SPEC_VERSION`, generated types, real resources                                     | 🟡 M | 2026-10-22 | @sadain | implemented | —      |
 | SDK-8   | First publish (manual) + trusted publishing                                                          | 🟢 S | —          | —       | planned     | —      |
 
 ## Team Activity
@@ -22,6 +22,16 @@ alongside every substantive change (see "Living docs" in [`CLAUDE.md`](../CLAUDE
   `/next`, `/ai-sdk`, `/webhooks`, `/errors` subpaths; `@ligaxai/react`; `@ligaxai/widget` with an
   IIFE build; the Next.js example; spec/bootstrap scripts; CI + release workflows; living docs.
   `pnpm check` green on Node 24.12.
+
+- **Agent API v0.1 (2026-10-22, `feat/agent-api-v0.1`, unpushed)** — spec `public-api-spec-v0.1.0`
+  and generated types; runs/conversations/profiles/keys/usage resources; `RunStream` +
+  `TextAssembler`; `createLigaXTransport`; `createRunRoute` / `createRunProxy`; `useLigaXChat` on
+  the LAE transport; working Next.js example. `pnpm check` green.
+
+- **Webhook endpoints (2026-10-22, `feat/agent-api-v0.1`, unpushed)** — spec re-copied with
+  `/webhooks*` and the outgoing-event `webhooks` section; `client.webhooks`
+  (`create/list/get/update/delete/test`); `Webhook.verify()` typed as `WebhookEvent`, Standard
+  Webhooks reference vector pinned; README Webhooks guide. `pnpm check` green.
 
 ## Unplanned Changes
 

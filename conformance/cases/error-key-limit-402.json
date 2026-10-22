@@ -1,0 +1,45 @@
+{
+  "name": "402 key_limit_reached maps to PaymentRequiredError with its code",
+  "request": {
+    "method": "POST",
+    "path": "/runs",
+    "headers": {
+      "authorization": "Bearer *"
+    },
+    "body": {
+      "profile_id": "prf_AAAAAAAAAAAAAAAAAAAA",
+      "input": "Hello",
+      "mode": "wait"
+    }
+  },
+  "response": {
+    "status": 402,
+    "headers": {
+      "content-type": "application/json",
+      "x-request-id": "req_conf_402",
+      "x-limit-resets-at": "2026-11-01T00:00:00.000Z"
+    },
+    "body": {
+      "error": {
+        "type": "billing_error",
+        "code": "key_limit_reached",
+        "message": "This API key has reached its spend limit.",
+        "request_id": "req_conf_402"
+      }
+    }
+  },
+  "expect": {
+    "call": "runs.create",
+    "args": [
+      {
+        "profile_id": "prf_AAAAAAAAAAAAAAAAAAAA",
+        "input": "Hello"
+      }
+    ],
+    "error": {
+      "class": "PaymentRequiredError",
+      "status": 402,
+      "code": "key_limit_reached"
+    }
+  }
+}

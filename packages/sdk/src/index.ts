@@ -12,6 +12,42 @@ export { VERSION } from './version.js';
 
 export * from './core/errors.js';
 
-export { Health } from './resources/health.js';
-export type { HealthResponse } from './resources/health.js';
+export { Runs } from './resources/runs.js';
+export type { RunBody, RunCreateBody, RunEventsParams, RunWaitOptions } from './resources/runs.js';
+export { Conversations } from './resources/conversations.js';
+export type { ConversationGetParams } from './resources/conversations.js';
+export { Profiles } from './resources/profiles.js';
+export { Keys } from './resources/keys.js';
+export { Usage } from './resources/usage.js';
+export type { UsageGetParams } from './resources/usage.js';
+export type { CallOptions, MutationOptions } from './resources/shared.js';
+
+export { RunStream } from './lib/run-stream.js';
+export type { RunStreamResult } from './lib/run-stream.js';
+export type { RunEvent } from './lib/lae.js';
+export { TextAssembler } from './lib/text-assembler.js';
+export { TERMINAL_RUN_STATUSES, isTerminalStatus } from './types.js';
+export type {
+  ApiKeyInfo,
+  Conversation,
+  EndUser,
+  ErrorBody,
+  ErrorType,
+  InterruptDecision,
+  InterruptDecisionParams,
+  Profile,
+  ProfileList,
+  RequiredAction,
+  Run,
+  RunCreateParams,
+  RunEventList,
+  RunEventRecord,
+  RunInput,
+  RunMode,
+  RunOutput,
+  RunStatus,
+  RunUsage,
+  Usage as UsageReport,
+  UsageGroupBy,
+} from './types.js';
 export type * as Types from './generated/types.js';

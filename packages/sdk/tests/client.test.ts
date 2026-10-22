@@ -32,16 +32,16 @@ describe('LigaX client options', () => {
   });
 
   it('sends Authorization, User-Agent, Accept and default headers', async () => {
-    const fetch = scriptedFetch([json({ status: 'ok', version: '1' })]);
+    const fetch = scriptedFetch([json({ object: 'api_key', id: 'key_1' })]);
     const client = new LigaX({
       apiKey: 'sk_test',
       baseURL: 'https://api.example/v1',
       fetch,
       defaultHeaders: { 'X-Tenant': 'acme' },
     });
-    await client.health.get();
+    await client.keys.self();
     const [call] = fetch.calls;
-    expect(call?.url).toBe('https://api.example/v1/health');
+    expect(call?.url).toBe('https://api.example/v1/keys/self');
     expect(call?.headers.get('authorization')).toBe('Bearer sk_test');
     expect(call?.headers.get('user-agent')).toMatch(
       /^ligaxai-typescript-typescript\/\d+\.\d+\.\d+/,
@@ -52,34 +52,34 @@ describe('LigaX client options', () => {
   });
 
   it('omits Authorization when no key is configured (client-token flows set their own header)', async () => {
-    const fetch = scriptedFetch([json({ status: 'ok', version: '1' })]);
+    const fetch = scriptedFetch([json({ object: 'api_key', id: 'key_1' })]);
     const client = new LigaX({ baseURL: 'https://api.example', fetch });
-    await client.health.get({ headers: { Authorization: 'Bearer lgx_ct_abc' } });
+    await client.keys.self({ headers: { Authorization: 'Bearer lgx_ct_abc' } });
     expect(fetch.calls[0]?.headers.get('authorization')).toBe('Bearer lgx_ct_abc');
   });
 
   it('exposes the request id on the result and via withResponse()', async () => {
     const fetch = scriptedFetch([
-      json({ status: 'ok', version: '1' }, { headers: { 'x-request-id': 'req_123' } }),
-      json({ status: 'ok', version: '1' }, { headers: { 'x-request-id': 'req_456' } }),
+      json({ object: 'api_key', id: 'key_1' }, { headers: { 'x-request-id': 'req_123' } }),
+      json({ object: 'api_key', id: 'key_1' }, { headers: { 'x-request-id': 'req_456' } }),
     ]);
     const client = new LigaX({ apiKey: 'k', baseURL: 'https://api.example', fetch });
-    const health = await client.health.get();
-    expect((health as { _request_id?: string })._request_id).toBe('req_123');
-    expect(JSON.stringify(health)).not.toContain('req_123');
+    const key = await client.keys.self();
+    expect((key as { _request_id?: string })._request_id).toBe('req_123');
+    expect(JSON.stringify(key)).not.toContain('req_123');
 
-    const { data, response, request_id } = await client.health.get().withResponse();
-    expect(data.status).toBe('ok');
+    const { data, response, request_id } = await client.keys.self().withResponse();
+    expect(data.object).toBe('api_key');
     expect(response.status).toBe(200);
     expect(request_id).toBe('req_456');
   });
 
   it('asResponse() hands back the unread Response', async () => {
-    const fetch = scriptedFetch([json({ status: 'ok', version: '1' })]);
+    const fetch = scriptedFetch([json({ object: 'api_key', id: 'key_1' })]);
     const client = new LigaX({ apiKey: 'k', baseURL: 'https://api.example', fetch });
-    const response = await client.health.get().asResponse();
+    const response = await client.keys.self().asResponse();
     expect(response.bodyUsed).toBe(false);
-    expect(await response.json()).toEqual({ status: 'ok', version: '1' });
+    expect(await response.json()).toEqual({ object: 'api_key', id: 'key_1' });
   });
 
   it('refuses to construct in a browser-like environment unless opted in', () => {
@@ -92,7 +92,7 @@ describe('LigaX client options', () => {
 
   it('routes logs through the injected logger and redacts Authorization', async () => {
     const logger = { error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() };
-    const fetch = scriptedFetch([json({ status: 'ok', version: '1' })]);
+    const fetch = scriptedFetch([json({ object: 'api_key', id: 'key_1' })]);
     const client = new LigaX({
       apiKey: 'sk_secret',
       baseURL: 'https://api.example',
@@ -100,7 +100,7 @@ describe('LigaX client options', () => {
       logger,
       logLevel: 'debug',
     });
-    await client.health.get();
+    await client.keys.self();
     expect(logger.debug).toHaveBeenCalled();
     const serialized = JSON.stringify(logger.debug.mock.calls);
     expect(serialized).not.toContain('sk_secret');

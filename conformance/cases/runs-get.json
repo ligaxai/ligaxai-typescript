@@ -1,0 +1,99 @@
+{
+  "name": "runs.get reads a run that is waiting on an interrupt",
+  "request": {
+    "method": "GET",
+    "path": "/runs/6f1c1a52-6a9f-4f5e-9d6a-1d2b3c4d5e6f",
+    "headers": {
+      "authorization": "Bearer *",
+      "accept": "application/json"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "content-type": "application/json",
+      "x-request-id": "req_conf_runs_2"
+    },
+    "body": {
+      "object": "run",
+      "id": "6f1c1a52-6a9f-4f5e-9d6a-1d2b3c4d5e6f",
+      "status": "requires_action",
+      "profile_id": "prf_AAAAAAAAAAAAAAAAAAAA",
+      "conversation_id": "conv_BBBBBBBBBBBBBBBBBBBBBBBB",
+      "end_user_id": "user-42",
+      "model": null,
+      "created_at": "2026-10-22T10:00:00.000Z",
+      "completed_at": null,
+      "output": {
+        "text": "I can send that email.",
+        "artifacts": [],
+        "sources": [],
+        "tool_calls": [
+          {
+            "id": "call_1",
+            "name": "send_email",
+            "status": "running",
+            "duration_ms": null
+          }
+        ]
+      },
+      "required_action": {
+        "type": "interrupt",
+        "interrupt_id": "int_1",
+        "kind": "approval",
+        "prompt": "Send the email?",
+        "preview": null,
+        "tool_name": "send_email",
+        "response_schema": null
+      },
+      "usage": null,
+      "error": null,
+      "metadata": {
+        "order": "42"
+      }
+    }
+  },
+  "expect": {
+    "call": "runs.get",
+    "args": ["6f1c1a52-6a9f-4f5e-9d6a-1d2b3c4d5e6f"],
+    "result": {
+      "object": "run",
+      "id": "6f1c1a52-6a9f-4f5e-9d6a-1d2b3c4d5e6f",
+      "status": "requires_action",
+      "profile_id": "prf_AAAAAAAAAAAAAAAAAAAA",
+      "conversation_id": "conv_BBBBBBBBBBBBBBBBBBBBBBBB",
+      "end_user_id": "user-42",
+      "model": null,
+      "created_at": "2026-10-22T10:00:00.000Z",
+      "completed_at": null,
+      "output": {
+        "text": "I can send that email.",
+        "artifacts": [],
+        "sources": [],
+        "tool_calls": [
+          {
+            "id": "call_1",
+            "name": "send_email",
+            "status": "running",
+            "duration_ms": null
+          }
+        ]
+      },
+      "required_action": {
+        "type": "interrupt",
+        "interrupt_id": "int_1",
+        "kind": "approval",
+        "prompt": "Send the email?",
+        "preview": null,
+        "tool_name": "send_email",
+        "response_schema": null
+      },
+      "usage": null,
+      "error": null,
+      "metadata": {
+        "order": "42"
+      }
+    }
+  }
+}

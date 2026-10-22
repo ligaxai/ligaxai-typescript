@@ -21,6 +21,8 @@ export interface LigaXChatProps {
   placeholder?: string | undefined;
   position?: 'bottom-right' | 'bottom-left' | undefined;
   open?: boolean | undefined;
+  /** Connector keys the visitor may connect their own account for, e.g. `['gmail', 'outlook']`. */
+  connectors?: readonly string[] | undefined;
   className?: string | undefined;
   /** Theme with custom properties, e.g. `{ '--ligax-accent': '#7c3aed' }`. */
   style?: (CSSProperties & Record<`--${string}`, string>) | undefined;
@@ -45,6 +47,7 @@ export function LigaXChat(props: LigaXChatProps) {
     placeholder: props.placeholder,
     position: props.position,
     open: props.open ? '' : undefined,
+    connectors: props.connectors?.length ? props.connectors.join(',') : undefined,
     className: props.className,
     style: props.style,
   });

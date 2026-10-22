@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   autoInit,
+  connectorName,
   define,
   friendlyError,
   mount,
@@ -352,6 +353,162 @@ describe('<ligax-chat> conversation', () => {
     expect(run?.headers.get('authorization')).toBe('Bearer lgx_ct_user.sig');
     expect((run?.body as { profile_id: string }).profile_id).toBe(PROFILE);
     expect(bubbles(el, 'assistant')).toEqual(['Hello Ada']);
+  });
+});
+
+describe('<ligax-chat> connect your account', () => {
+  const CONNECT_URL = 'https://accounts.example/consent?flow=1';
+  const connectSession = (over: Record<string, unknown> = {}, status = 200) =>
+    json(
+      {
+        object: 'connect_session',
+        id: 'flow_ABCDEFGH',
+        status: 'pending',
+        connect_url: CONNECT_URL,
+        expires_at: null,
+        connector_key: 'gmail',
+        end_user_id: 'visitor:abc',
+        connection_id: null,
+        failure_code: null,
+        ...over,
+      },
+      status,
+    );
+
+  function fakePopup() {
+    const popup = {
+      closed: false,
+      location: { href: '' },
+      close: vi.fn(() => {
+        popup.closed = true;
+      }),
+    };
+    vi.spyOn(window, 'open').mockReturnValue(popup as unknown as Window);
+    return popup;
+  }
+
+  const area = (el: LigaXChatElement) => shadow(el).querySelector<HTMLElement>('.connect')!;
+  const buttons = (el: LigaXChatElement) => [
+    ...shadow(el).querySelectorAll<HTMLButtonElement>('.connect-buttons button'),
+  ];
+  const status = (el: LigaXChatElement) =>
+    shadow(el).querySelector<HTMLElement>('.connect-status')!.textContent;
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  it('is hidden without connectors, and shows one humanised button per key', () => {
+    expect(area(widget(fakeFetch({}))).hidden).toBe(true);
+    const el = widget(fakeFetch({}), { connectors: 'gmail, google_calendar,github,<b>x</b>' });
+    expect(area(el).hidden).toBe(false);
+    expect(buttons(el).map((b) => b.textContent)).toEqual(['Gmail', 'Google Calendar', 'GitHub']);
+    expect(buttons(el)[0]?.getAttribute('aria-label')).toBe('Connect Gmail');
+  });
+
+  it('reads data-connectors from the script tag', async () => {
+    const script = document.createElement('script');
+    script.setAttribute('data-publishable-key', 'lgx_pk_live_abc');
+    script.setAttribute('data-profile-id', PROFILE);
+    script.setAttribute('data-connectors', 'gmail,outlook');
+    const el = (await autoInit(document, script))!;
+    expect(el.getAttribute('connectors')).toBe('gmail,outlook');
+    expect(buttons(el).map((b) => b.textContent)).toEqual(['Gmail', 'Outlook']);
+  });
+
+  it('opens the popup in the click, polls to succeeded and confirms', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
+    const popup = fakePopup();
+    const fetch = fakeFetch({
+      'POST /widget/sessions': session(),
+      'POST /connect_sessions': connectSession({}, 201),
+      'GET /connect_sessions/flow_ABCDEFGH': connectSession({
+        status: 'succeeded',
+        connect_url: null,
+        connector_key: '',
+        connection_id: 'conn_1',
+      }),
+    });
+    const el = widget(fetch, { connectors: ['gmail', 'outlook'], open: true });
+    buttons(el)[0]!.click();
+    // Synchronously, inside the click: the popup is open and every button waits.
+    expect(window.open).toHaveBeenCalledTimes(1);
+    expect(buttons(el).every((b) => b.disabled)).toBe(true);
+    expect(status(el)).toBe('Connecting Gmail…');
+
+    await vi.waitFor(() => expect(popup.location.href).toBe(CONNECT_URL));
+    await vi.advanceTimersByTimeAsync(2_000);
+    await vi.waitFor(() => expect(status(el)).toBe('Gmail is connected.'));
+    expect(popup.closed).toBe(true);
+    expect(buttons(el).map((b) => [b.textContent, b.disabled])).toEqual([
+      ['Gmail connected', true],
+      ['Outlook', false],
+    ]);
+    const create = fetch.calls.find((c) => c.url.endsWith('/connect_sessions'))!;
+    // The visitor's client token, and nothing but the connector: the token fixes user and profile.
+    expect(create.headers.get('authorization')).toBe('Bearer lgx_ct_visitor.sig');
+    expect(create.body).toEqual({ connector_key: 'gmail' });
+  });
+
+  it('says so when the visitor declines', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
+    fakePopup();
+    const fetch = fakeFetch({
+      'POST /widget/sessions': session(),
+      'POST /connect_sessions': connectSession({}, 201),
+      'GET /connect_sessions/flow_ABCDEFGH': connectSession({ status: 'denied' }),
+    });
+    const el = widget(fetch, { connectors: 'gmail' });
+    buttons(el)[0]!.click();
+    await vi.waitFor(() => expect(fetch.calls.length).toBe(2));
+    await vi.advanceTimersByTimeAsync(2_000);
+    await vi.waitFor(() => expect(status(el)).toBe('Gmail was not connected.'));
+    expect(buttons(el)[0]?.disabled).toBe(false);
+  });
+
+  it('hides the area when the profile does not allow end-user connections', async () => {
+    const popup = fakePopup();
+    const fetch = fakeFetch({
+      'POST /widget/sessions': session(),
+      'POST /connect_sessions': json(
+        {
+          error: {
+            type: 'conflict_error',
+            code: 'end_user_connections_off',
+            message: 'off',
+            request_id: 'req_x',
+          },
+        },
+        409,
+        { 'x-should-retry': 'false' },
+      ),
+    });
+    const el = widget(fetch, { connectors: 'gmail' });
+    buttons(el)[0]!.click();
+    await vi.waitFor(() => expect(area(el).hidden).toBe(true));
+    expect(popup.closed).toBe(true);
+    expect(buttons(el)).toHaveLength(0);
+  });
+
+  it('asks to allow pop-ups when the browser blocks one', () => {
+    vi.spyOn(window, 'open').mockReturnValue(null);
+    const fetch = fakeFetch({});
+    const el = widget(fetch, { connectors: 'gmail' });
+    buttons(el)[0]!.click();
+    return vi.waitFor(() => {
+      expect(status(el)).toBe('Allow pop-ups for this site to connect Gmail.');
+      expect(fetch.calls).toHaveLength(0);
+    });
+  });
+});
+
+describe('connectorName', () => {
+  it('humanises connector keys', () => {
+    expect(connectorName('gmail')).toBe('Gmail');
+    expect(connectorName('microsoft_outlook')).toBe('Microsoft Outlook');
+    expect(connectorName('servicenow')).toBe('ServiceNow');
+    expect(connectorName('google-drive')).toBe('Google Drive');
   });
 });
 

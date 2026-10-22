@@ -17,6 +17,7 @@ import { define, TAG_NAME, type LigaXChatElement } from './element.js';
  */
 
 export {
+  connectorName,
   define,
   friendlyError,
   getElementClass,
@@ -43,6 +44,12 @@ export interface WidgetOptions {
   position?: 'bottom-right' | 'bottom-left' | undefined;
   /** Start with the panel open. */
   open?: boolean | undefined;
+  /**
+   * Connector keys (`['gmail', 'outlook']` or `"gmail,outlook"`) the visitor may connect their own
+   * account for: a "Connect your account" area with one button each. Needs the profile's "End users
+   * can connect their own accounts" switch; when it is off the area hides itself.
+   */
+  connectors?: readonly string[] | string | undefined;
   /** Element or selector to append to. Default `document.body`. */
   container?: HTMLElement | string | undefined;
   /** Inject a `fetch` (tests, proxies). */
@@ -66,6 +73,8 @@ export function mount(options: WidgetOptions): LigaXChatElement {
     greeting: options.greeting,
     placeholder: options.placeholder,
     position: options.position,
+    connectors:
+      typeof options.connectors === 'string' ? options.connectors : options.connectors?.join(','),
   };
   for (const [name, value] of Object.entries(attrs)) if (value) el.setAttribute(name, value);
   if (options.open) el.setAttribute('open', '');
@@ -82,7 +91,8 @@ export function mount(options: WidgetOptions): LigaXChatElement {
  * ```
  *
  * or `data-token-url="/api/ligax-token"` for signed-in users. Also read: `data-base-url`,
- * `data-title`, `data-greeting`, `data-placeholder`, `data-position`, `data-open`.
+ * `data-title`, `data-greeting`, `data-placeholder`, `data-position`, `data-open` and
+ * `data-connectors` (e.g. `"gmail,outlook"`).
  */
 export function autoInit(
   doc: Document = document,
@@ -108,6 +118,7 @@ export function autoInit(
       placeholder: data('placeholder'),
       position: position === 'bottom-left' ? 'bottom-left' : 'bottom-right',
       open: open !== undefined && open !== 'false',
+      connectors: data('connectors'),
       container: doc.body,
     });
   if (doc.readyState === 'loading') {

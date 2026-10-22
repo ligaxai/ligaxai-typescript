@@ -42,6 +42,12 @@ button{font:inherit;cursor:pointer}
 header{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--_border)}
 h2{flex:1;margin:0;font-size:15px;font-weight:600}
 .close{border:0;background:transparent;color:var(--_muted);font-size:20px;line-height:1;width:32px;height:32px;border-radius:8px}
+.connect{padding:10px 14px;border-bottom:1px solid var(--_border);display:flex;flex-direction:column;gap:8px}
+.connect p{margin:0}#connect-title{font-weight:600;font-size:13px}
+.connect-buttons{display:flex;flex-wrap:wrap;gap:6px}
+.connect-buttons button{padding:6px 12px;border-radius:8px;border:1px solid var(--_border);background:transparent;color:inherit}
+.connect-buttons button:disabled{opacity:.6;cursor:default}
+.connect-status{color:var(--_muted);font-size:12.5px}.connect-status:empty{display:none}
 .log{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
 .msg{max-width:88%;padding:9px 12px;border-radius:var(--_radius);word-wrap:break-word;overflow-wrap:anywhere}
 .msg p{margin:0 0 .6em}.msg p:last-child{margin-bottom:0}

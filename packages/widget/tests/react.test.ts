@@ -24,6 +24,7 @@ describe('<LigaXChat>', () => {
           title: 'Help',
           position: 'bottom-left',
           open: true,
+          connectors: ['gmail', 'outlook'],
         }),
       );
     });
@@ -32,6 +33,7 @@ describe('<LigaXChat>', () => {
     expect(el.getAttribute('profile-id')).toBe('prf_AAAAAAAAAAAAAAAAAAAA');
     expect(el.getAttribute('position')).toBe('bottom-left');
     expect(el.hasAttribute('open')).toBe(true);
+    expect(el.getAttribute('connectors')).toBe('gmail,outlook');
     expect(customElements.get('ligax-chat')).toBeDefined();
     // Upgraded once defined: the shadow root carries the panel, titled from the prop.
     expect(el.shadowRoot?.querySelector('h2')?.textContent).toBe('Help');

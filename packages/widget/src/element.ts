@@ -1,9 +1,12 @@
 import {
   APIConnectionError,
   APIError,
+  ConnectAccountError,
   LigaX,
   TextAssembler,
   cachedTokenProvider,
+  connectAccount,
+  type ConnectSession,
   type Fetch,
   type RunEvent,
   type RunStream,
@@ -26,6 +29,7 @@ export const OBSERVED_ATTRIBUTES = [
   'placeholder',
   'position',
   'open',
+  'connectors',
 ] as const;
 
 /** The element's public surface, also what `mount()` returns. */
@@ -60,6 +64,11 @@ const TEMPLATE = `
 <button class="launcher" type="button" aria-expanded="false" aria-controls="panel" aria-label="Open chat">${LAUNCHER_ICON}</button>
 <section class="panel" id="panel" role="dialog" aria-labelledby="title" hidden>
   <header><h2 id="title"></h2><button class="close" type="button" aria-label="Close chat">×</button></header>
+  <div class="connect" role="group" aria-labelledby="connect-title" hidden>
+    <p id="connect-title">Connect your account</p>
+    <div class="connect-buttons"></div>
+    <p class="connect-status" role="status"></p>
+  </div>
   <div class="log" role="log" aria-live="polite" aria-relevant="additions text"></div>
   <div class="sr" aria-live="polite" data-activity></div>
   <form>
@@ -94,12 +103,19 @@ export function getElementClass(): new () => LigaXChatElement {
     private readonly form: HTMLFormElement;
     private readonly input: HTMLTextAreaElement;
     private readonly sendButton: HTMLButtonElement;
+    private readonly connectArea: HTMLElement;
+    private readonly connectButtons: HTMLElement;
+    private readonly connectStatus: HTMLElement;
 
     private client: LigaX | undefined;
     private profileId: string | undefined;
     private busy = false;
     private active: RunStream | undefined;
     private greeted = false;
+    /** The profile does not let end users connect accounts (409): the area stays hidden. */
+    private connectOff = false;
+    private connecting: AbortController | undefined;
+    private readonly connected = new Set<string>();
 
     constructor() {
       super();
@@ -118,6 +134,9 @@ export function getElementClass(): new () => LigaXChatElement {
       this.form = $('form');
       this.input = $('textarea');
       this.sendButton = $('.send');
+      this.connectArea = $('.connect');
+      this.connectButtons = $('.connect-buttons');
+      this.connectStatus = $('.connect-status');
 
       this.launcher.addEventListener('click', () => this.toggle());
       $('.close').addEventListener('click', () => this.hide());
@@ -149,12 +168,15 @@ export function getElementClass(): new () => LigaXChatElement {
 
     disconnectedCallback(): void {
       this.active?.abort();
+      this.connecting?.abort();
     }
 
     attributeChangedCallback(name: string, previous: string | null, next: string | null): void {
       if (previous === next) return;
       if (['publishable-key', 'profile-id', 'token-url', 'base-url'].includes(name)) {
         this.client = undefined;
+        this.connectOff = false;
+        this.connected.clear();
       }
       if (this.isConnected) this.render();
     }
@@ -373,6 +395,94 @@ export function getElementClass(): new () => LigaXChatElement {
       this.heading.textContent = this.getAttribute('chat-title') || 'Chat';
       this.input.placeholder = this.getAttribute('placeholder') || 'Type a message…';
       if (this.hasAttribute('open') && this.panel.hidden) this.show();
+      this.renderConnectors();
+    }
+
+    // ── end users connecting their own accounts ───────────────────────────────────────────────
+
+    private connectorKeys(): string[] {
+      const raw = this.getAttribute('connectors') ?? '';
+      const keys = raw
+        .split(',')
+        .map((key) => key.trim())
+        .filter((key) => /^[a-z0-9][a-z0-9_.-]{0,63}$/i.test(key));
+      return [...new Set(keys)];
+    }
+
+    /** One button per connector key; built with DOM calls, labels from textContent only. */
+    private renderConnectors(): void {
+      const keys = this.connectOff ? [] : this.connectorKeys();
+      this.connectArea.hidden = keys.length === 0;
+      const buttons = keys.map((key) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.dataset['connector'] = key;
+        this.paintConnectButton(button, key);
+        button.addEventListener('click', () => this.connect(key));
+        return button;
+      });
+      this.connectButtons.replaceChildren(...buttons);
+    }
+
+    private paintConnectButton(button: HTMLButtonElement, key: string): void {
+      const done = this.connected.has(key);
+      button.textContent = done ? `${connectorName(key)} connected` : connectorName(key);
+      button.setAttribute(
+        'aria-label',
+        done ? `${connectorName(key)} connected` : `Connect ${connectorName(key)}`,
+      );
+      button.disabled = done || this.connecting !== undefined;
+    }
+
+    private setConnectButtonsDisabled(): void {
+      for (const button of this.connectButtons.querySelectorAll('button')) {
+        this.paintConnectButton(button, button.dataset['connector'] ?? '');
+      }
+    }
+
+    /**
+     * Runs inside the button's click handler and reaches `connectAccount()` without an await, so the
+     * browser treats the popup as user-initiated.
+     */
+    private connect(key: string): void {
+      if (this.connecting) return;
+      let client: LigaX;
+      try {
+        client = this.ensureClient();
+      } catch (error) {
+        this.connectStatus.textContent = friendlyError(error, !!this.getAttribute('token-url'));
+        return;
+      }
+      const controller = new AbortController();
+      this.connecting = controller;
+      this.setConnectButtonsDisabled();
+      this.connectStatus.textContent = `Connecting ${connectorName(key)}…`;
+      void connectAccount(client, { connectorKey: key, signal: controller.signal })
+        .then((session) => this.connectSettled(key, session, undefined))
+        .catch((error: unknown) => this.connectSettled(key, undefined, error))
+        .finally(() => {
+          if (this.connecting === controller) this.connecting = undefined;
+          this.setConnectButtonsDisabled();
+        });
+    }
+
+    private connectSettled(key: string, session: ConnectSession | undefined, error: unknown): void {
+      if (this.connecting?.signal.aborted) return;
+      const name = connectorName(key);
+      if (session?.status === 'succeeded') {
+        this.connected.add(key);
+        this.connectStatus.textContent = `${name} is connected.`;
+        return;
+      }
+      if (error instanceof APIError && error.code === 'end_user_connections_off') {
+        this.connectOff = true;
+        this.connectStatus.textContent = '';
+        this.renderConnectors();
+        return;
+      }
+      this.connectStatus.textContent = connectFailure(name, session, error, () =>
+        friendlyError(error, !!this.getAttribute('token-url')),
+      );
     }
 
     private greet(): void {
@@ -460,6 +570,48 @@ function toPending(runId: string, event: RunEvent, tools: Map<string, string>): 
     prompt,
     preview,
   };
+}
+
+/** Brand casings a split-and-capitalise would get wrong. */
+const CONNECTOR_NAMES: Record<string, string> = {
+  github: 'GitHub',
+  gitlab: 'GitLab',
+  hubspot: 'HubSpot',
+  servicenow: 'ServiceNow',
+  sharepoint: 'SharePoint',
+  onedrive: 'OneDrive',
+  linkedin: 'LinkedIn',
+  youtube: 'YouTube',
+};
+
+/** `google_calendar` → "Google Calendar", `gmail` → "Gmail". */
+export function connectorName(key: string): string {
+  const known = CONNECTOR_NAMES[key.toLowerCase()];
+  if (known) return known;
+  return key
+    .split(/[_.-]+/)
+    .filter(Boolean)
+    .map((word) => CONNECTOR_NAMES[word.toLowerCase()] ?? word[0]!.toUpperCase() + word.slice(1))
+    .join(' ');
+}
+
+function connectFailure(
+  name: string,
+  session: ConnectSession | undefined,
+  error: unknown,
+  fallback: () => string,
+): string {
+  if (session?.status === 'denied') return `${name} was not connected.`;
+  if (session) return `Could not connect ${name}. Please try again.`;
+  if (error instanceof ConnectAccountError) {
+    if (error.reason === 'popup_blocked') return `Allow pop-ups for this site to connect ${name}.`;
+    if (error.reason === 'popup_closed') return `${name} was not connected.`;
+    return `Connecting ${name} took too long. Please try again.`;
+  }
+  if (error instanceof APIError && error.status === 422) {
+    return `${name} cannot be connected here.`;
+  }
+  return fallback();
 }
 
 function humanise(name: string): string {

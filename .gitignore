@@ -11,3 +11,6 @@ coverage/
 .env.*
 !.env.example
 !examples/**/.env.example
+
+# Tarballs from `pnpm pack` (scripts/publish-packages.mjs)
+*.tgz

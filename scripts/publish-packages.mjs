@@ -40,7 +40,12 @@ function published(name, version) {
   }
 }
 
-for (const dir of readdirSync(join(ROOT, 'packages'))) {
+// The client first: `@ligaxai/react` and `@ligaxai/widget` depend on the exact `@ligaxai/sdk` version
+// being published, and must never be on the registry before it.
+const dirs = readdirSync(join(ROOT, 'packages')).sort((a, b) =>
+  a === 'sdk' ? -1 : b === 'sdk' ? 1 : a.localeCompare(b),
+);
+for (const dir of dirs) {
   const cwd = join(ROOT, 'packages', dir);
   let pkg;
   try {

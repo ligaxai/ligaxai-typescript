@@ -222,7 +222,7 @@ pnpm test           # vitest across all packages
 pnpm changeset      # describe a user-facing change before opening a PR
 ```
 
-- `SPEC_VERSION` pins the public API spec tag (`public-api-spec-v0.1.0`); `openapi/openapi.json` is
+- `SPEC_VERSION` pins the public API spec tag (`public-api-spec-v0.2.0`); `openapi/openapi.json` is
   the contract and `pnpm gen:types` regenerates the typed models from it (`openapi/README.md`).
 - `examples/nextjs-app` is typechecked in CI but not built; run it with
   `pnpm --filter nextjs-app-example dev`.

@@ -1,7 +1,10 @@
 import { LigaX, type ClientOptions } from './client.js';
 import { APIError } from './core/errors.js';
 import type { HTTPMethod } from './core/base-client.js';
-import type { EndUser, RunCreateParams, RunInput } from './types.js';
+import { defaultInput } from './lib/input.js';
+import type { ClientTokenCreateParams, EndUser, RunCreateParams, RunInput } from './types.js';
+
+export { defaultInput };
 
 /**
  * `@ligaxai/sdk/next` — Next.js App Router route handlers that keep the **secret key on the server**
@@ -16,6 +19,9 @@ import type { EndUser, RunCreateParams, RunInput } from './types.js';
  *   out. Pair it with `createLigaXTransport` / `useLigaXChat` in the browser.
  * - `createRunProxy` — a thin `POST /runs` passthrough with the profile and end user pinned
  *   server-side.
+ * - `createTokenRoute` — mint a client token (`lgx_ct_…`) for the signed-in user, so the browser
+ *   can call the API directly (`createLigaXTransport({ baseURL, getToken, profileId })`, the widget's
+ *   `data-token-url`).
  * - `createRouteHandler` — the generic building block: map any request to any upstream call.
  */
 
@@ -261,32 +267,104 @@ export function createRunProxy(options: RunProxyOptions = {}): RunRouteHandlers 
   };
 }
 
-/** `body.input`, else the last user message's text parts (UIMessage) or string `content`. */
-export function defaultInput(body: unknown): RunInput | null {
-  if (!body || typeof body !== 'object') return null;
-  const b = body as { input?: unknown; messages?: unknown };
-  if (typeof b.input === 'string' && b.input.length > 0) return b.input;
-  if (
-    b.input &&
-    typeof b.input === 'object' &&
-    typeof (b.input as { text?: unknown }).text === 'string'
-  ) {
-    return { text: (b.input as { text: string }).text };
-  }
-  if (!Array.isArray(b.messages)) return null;
-  for (let i = b.messages.length - 1; i >= 0; i--) {
-    const message = b.messages[i] as { role?: unknown; parts?: unknown; content?: unknown };
-    if (message?.role !== 'user') continue;
-    if (Array.isArray(message.parts)) {
-      const text = message.parts
-        .filter((part: { type?: unknown }) => part?.type === 'text')
-        .map((part: { text?: unknown }) => (typeof part.text === 'string' ? part.text : ''))
-        .join('');
-      return text || null;
-    }
-    return typeof message.content === 'string' && message.content ? message.content : null;
-  }
-  return null;
+// ── token route ─────────────────────────────────────────────────────────────────────────────────
+
+export interface TokenRouteOptions extends Omit<ClientOptions, 'dangerouslyAllowBrowser'> {
+  /** Reuse an existing client instead of constructing one from the options. */
+  client?: LigaX | undefined;
+  /** The `prf_…` profile the token may run. Pinned here, never taken from the browser. */
+  profileId: string;
+  /**
+   * Who is asking, from your own session — never from the request body. Return `null` (or nothing)
+   * for "not signed in" and the route answers `401` without calling the API.
+   */
+  resolveEndUser: (request: Request) => MaybePromise<EndUser | string | null | undefined>;
+  /** Token lifetime in seconds, 60–3600. Default: the API's (600). */
+  expiresIn?: number | undefined;
+  /**
+   * Pin the token to one conversation the user already has (`conv_…`). Default: not pinned — the
+   * browser starts conversations and continues them with the `conversation_id` each run echoes.
+   */
+  resolveConversationId?:
+    ((request: Request) => MaybePromise<string | null | undefined>) | undefined;
+}
+
+/** What `createTokenRoute` answers: the token, when it stops working, and what it is bound to. */
+export interface TokenRouteResponse {
+  token: string;
+  expires_at: string;
+  profile_id: string;
+  conversation_id?: string;
+}
+
+/**
+ * `POST` handler that mints a client token for the signed-in user with your secret key, so the
+ * browser can call the API itself — the run streams straight from LigaX instead of through your
+ * server. The token runs only `profileId`, only as the user `resolveEndUser` named, and only from the
+ * origins on the profile; it expires in minutes (the browser side asks again on `401
+ * token_expired`). The key needs the `client_tokens:write` scope.
+ *
+ * ```ts
+ * // app/api/ligax-token/route.ts — server only
+ * export const { POST } = createTokenRoute({
+ *   profileId: process.env.LIGAX_PROFILE_ID!,
+ *   resolveEndUser: async () => {
+ *     const user = (await auth())?.user;
+ *     return user ? { id: user.id, name: user.name } : null;
+ *   },
+ * });
+ * ```
+ */
+export function createTokenRoute(options: TokenRouteOptions): RunRouteHandlers {
+  const {
+    client: given,
+    profileId,
+    resolveEndUser,
+    expiresIn,
+    resolveConversationId,
+    ...clientOptions
+  } = options;
+  const client = given ?? new LigaX(clientOptions);
+
+  return {
+    async POST(request) {
+      const endUser = await endUserFrom(resolveEndUser, request);
+      if (!endUser) {
+        return Response.json(
+          {
+            error: {
+              type: 'authentication_error',
+              code: 'not_signed_in',
+              message: 'Sign in to chat.',
+            },
+          },
+          { status: 401, headers: { 'cache-control': 'no-store' } },
+        );
+      }
+      const conversationId = resolveConversationId
+        ? await resolveConversationId(request)
+        : undefined;
+      const body: ClientTokenCreateParams = {
+        profile_id: profileId,
+        end_user: endUser,
+        ...(expiresIn !== undefined ? { expires_in: expiresIn } : {}),
+        ...(conversationId ? { conversation_id: conversationId } : {}),
+      };
+      try {
+        const minted = await client.clientTokens.create(body, { signal: request.signal });
+        const out: TokenRouteResponse = {
+          token: minted.token,
+          expires_at: minted.expires_at,
+          profile_id: minted.profile_id,
+          ...(minted.conversation_id ? { conversation_id: minted.conversation_id } : {}),
+        };
+        // A bearer credential for one user: no shared cache may keep it.
+        return Response.json(out, { status: 200, headers: { 'cache-control': 'no-store' } });
+      } catch (error) {
+        return errorResponse(error);
+      }
+    },
+  };
 }
 
 async function readJson(request: Request): Promise<{ ok: true; value: unknown } | { ok: false }> {

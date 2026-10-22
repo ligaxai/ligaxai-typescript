@@ -52,6 +52,7 @@ jobs:
           # after the first manual publish of each package — see the header). Without it the job
           # still opens the version PR and never fails on a registry that is not set up yet.
           publish: ${{ vars.NPM_PUBLISH_ENABLED == 'true' && 'pnpm release' || '' }}
+          # Provenance is automatic under trusted publishing (public repo + public package).
           title: 'chore: version packages'
           commit: 'chore: version packages'
         env:
@@ -76,9 +77,10 @@ jobs:
         run: node scripts/snapshot-version.mjs "dev.${GITHUB_RUN_NUMBER}"
       - name: Publish under the `dev` dist-tag
         if: vars.NPM_PUBLISH_ENABLED == 'true'
-        run: pnpm -r --filter './packages/*' publish --access public --tag dev --no-git-checks
-        env:
-          NPM_CONFIG_PROVENANCE: 'true'
+        # npm's trusted publishing needs the npm CLI ≥ 11.5.1 doing the publish (see the script).
+        run: |
+          npm install -g npm@^11.5.1
+          node scripts/publish-packages.mjs dev
       - name: Publishing is not switched on yet
         if: vars.NPM_PUBLISH_ENABLED != 'true'
         run: |

@@ -5,11 +5,11 @@
 Official TypeScript packages for the **LigaX Agent API** — run the agents you configure in LigaX
 from your own software. Node 22+, ESM and CJS, works in Bun, Deno and workerd.
 
-| Package           | Use it for                                                                                                                                                        |
-| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@ligaxai/sdk`    | The API client: runs (wait, stream, poll), conversations, profiles, keys, usage, webhooks, retries, errors. Subpaths: `/next`, `/ai-sdk`, `/webhooks`, `/errors`. |
-| `@ligaxai/react`  | `useLigaXChat` for Vercel AI SDK `useChat` apps.                                                                                                                  |
-| `@ligaxai/widget` | A chat panel for any site: one `<script>` tag, no framework (preview — see below).                                                                                |
+| Package           | Use it for                                                                                                                                                                       |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@ligaxai/sdk`    | The API client: runs (wait, stream, poll), conversations, profiles, keys, usage, webhooks, client tokens, retries, errors. Subpaths: `/next`, `/ai-sdk`, `/webhooks`, `/errors`. |
+| `@ligaxai/react`  | `useLigaXChat` for Vercel AI SDK `useChat` apps — through your route or directly with a client token.                                                                            |
+| `@ligaxai/widget` | A chat assistant for any website: one `<script>` tag, a `<ligax-chat>` element, or `<LigaXChat>` for React.                                                                      |
 
 ## Quickstart
 
@@ -181,30 +181,128 @@ unsubscribe when they turn it off. Map "subscribe" to
 `client.webhooks.create({ url: hookUrl, event_types })` (keep the returned `id` and `secret`) and
 "unsubscribe" to `client.webhooks.delete(id)`.
 
-### Widget
+### Browser access (client tokens)
 
-Preview: the widget expects a publishable key, which the v0.1 API does not issue yet.
+A secret key (`lgx_sk_…`) never goes to a browser — the client refuses one there. To let a browser
+call the API itself (the stream then comes straight from LigaX, not through your server), your
+server mints a **client token** for the signed-in user:
+
+```ts
+// server only — the key needs the client_tokens:write scope
+const { token, expires_at } = await client.clientTokens.create({
+  profile_id: 'prf_…',
+  end_user: { id: user.id, name: user.name },
+  expires_in: 600, // 60–3600 s, default 600
+});
+```
+
+A client token (`lgx_ct_…`) runs **one profile as one end user**: `POST /runs`, reads and cancels of
+that user's runs, interrupt answers, and `GET /conversations/{id}`. A request body may repeat the
+profile, end user or conversation but never change them (`403 token_scope`). From a browser it is
+accepted only from the profile's **allowed origins** (`403 origin_not_allowed`) — add your site's
+origin to the profile in LigaX first. Revoking or disabling the key that minted it ends it at once.
+
+In Next.js, `createTokenRoute` is that server endpoint:
+
+```ts
+// app/api/ligax-token/route.ts
+import { createTokenRoute } from '@ligaxai/sdk/next';
+
+export const { POST } = createTokenRoute({
+  profileId: process.env.LIGAX_PROFILE_ID!,
+  // From YOUR session, never the request body. null → 401.
+  resolveEndUser: async () => {
+    const user = (await auth())?.user;
+    return user ? { id: user.id, name: user.name } : null;
+  },
+  expiresIn: 600,
+});
+// → 200 { token, expires_at, profile_id, conversation_id? }, Cache-Control: no-store
+```
+
+In the browser, pass the token — or better, a function that fetches it — as `apiKey`. A function is
+called before requests and once more when the API answers `401 token_expired`; `cachedTokenProvider`
+reuses a token until shortly before `expires_at`:
+
+```ts
+import { LigaX, cachedTokenProvider } from '@ligaxai/sdk';
+
+const client = new LigaX({
+  apiKey: cachedTokenProvider(() =>
+    fetch('/api/ligax-token', { method: 'POST' }).then((r) => r.json()),
+  ),
+});
+const stream = await client.runs.stream({ profile_id: 'prf_…', input: 'Hi' });
+```
+
+With `useChat`, give the transport `getToken` instead of `api` (`profileId` is optional when the
+token answer carries `profile_id`):
+
+```tsx
+const getToken = () => fetch('/api/ligax-token', { method: 'POST' }).then((r) => r.json());
+// in the component — getToken defined outside it, so the transport and its token cache persist
+const chat = useLigaXChat({ useChat, getToken });
+// or: createLigaXTransport({ getToken, profileId, baseURL }) from '@ligaxai/sdk/ai-sdk'
+```
+
+`<LigaXProvider baseURL=… getClientToken=…>` switches the hooks under it to direct mode the same
+way.
+
+### Website widget
+
+`@ligaxai/widget` is a chat assistant for any website: a `<ligax-chat>` custom element in Shadow DOM
+(no framework, the page's CSS cannot break it), streaming answers, tool activity, an approval card
+when the agent asks before acting, and friendly errors. One script tag:
 
 ```html
+<!-- Anonymous visitors: a publishable key -->
 <script
   src="https://unpkg.com/@ligaxai/widget/dist/widget.global.js"
-  data-publishable-key="pk_..."
-  data-profile="support"
-  defer
+  data-publishable-key="lgx_pk_live_…"
+  data-profile-id="prf_…"
+  data-title="Acme support"
+  data-greeting="Hi! How can I help?"
+  async
+></script>
+
+<!-- Signed-in users: your own token endpoint (e.g. createTokenRoute above) -->
+<script
+  src="https://unpkg.com/@ligaxai/widget/dist/widget.global.js"
+  data-token-url="/api/ligax-token"
+  async
 ></script>
 ```
+
+Before it works:
+
+- **Origins.** Add your site's origin (e.g. `https://www.acme.com`) to the **profile's** allowed
+  origins — and, for a publishable key, to the **key's** origins too. Anything else gets
+  `403 origin_not_allowed`.
+- **Publishable keys need a spend limit.** `lgx_pk_` keys are public by design and can only open
+  anonymous widget sessions (`POST /widget/sessions`, a 15-minute token for `visitor:<id>`); the
+  platform requires a spend limit on them because anyone can use one from your site. The profile's
+  end-user identity must be `optional`; a `required` profile needs `data-token-url`.
+- **Token URL.** The widget POSTs to it with the page's cookies (`credentials: 'include'`) and
+  expects `{ token, expires_at, profile_id }` — exactly what `createTokenRoute` answers.
+
+Optional attributes: `data-base-url` (non-production platform), `data-title`, `data-greeting`,
+`data-placeholder`, `data-position` (`bottom-right` | `bottom-left`), `data-open`. Theme it from
+your CSS with custom properties (`ligax-chat { --ligax-accent: #7c3aed; --ligax-radius: 8px }`); it
+follows `prefers-color-scheme`. In React, use `<LigaXChat publishableKey profileId />` from
+`@ligaxai/widget/react`. See [packages/widget/README.md](packages/widget/README.md) for the full
+reference and the bundle size.
 
 ## Client options
 
 | Option / env                        | Default                                                                                               |
 | ----------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `apiKey` / `LIGAX_API_KEY`          | —                                                                                                     |
+| `apiKey` / `LIGAX_API_KEY`          | — (a string, or a token provider `({ refresh }) => string` for client tokens)                         |
 | `baseURL` / `LIGAX_BASE_URL`        | `https://enterprise.ligax.ai/api/public/v1`                                                           |
 | `timeout`                           | `600000` ms                                                                                           |
 | `maxRetries`                        | `2` — connection errors, 408/409/429/5xx; never 402/403/422; honours `retry-after-ms` / `retry-after` |
 | `defaultHeaders`, `fetch`, `logger` | —                                                                                                     |
 | `logLevel` / `LIGAX_LOG`            | `warn` (`off error warn info debug`)                                                                  |
-| `dangerouslyAllowBrowser`           | `false`                                                                                               |
+| `dangerouslyAllowBrowser`           | `false` — in a browser only `lgx_ct_` / `lgx_pk_` keys and token providers are accepted without it    |
 
 Every POST carries an `Idempotency-Key` (UUID, reused across retries); pass `idempotencyKey` to
 control it — the API returns the same run for the same key and body. Errors extend `LigaXError`:

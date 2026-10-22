@@ -33,6 +33,13 @@ alongside every substantive change (see "Living docs" in [`CLAUDE.md`](../CLAUDE
   (`create/list/get/update/delete/test`); `Webhook.verify()` typed as `WebhookEvent`, Standard
   Webhooks reference vector pinned; README Webhooks guide. `pnpm check` green.
 
+- **Browser access + widget (2026-10-22, `feat/browser-access`, unpushed)** — platform Phase 5 on
+  the SDK side: spec `public-api-spec-v0.2.0` (client tokens, widget sessions);
+  `clientTokens.create`, token providers with one refresh on `token_expired`, browser guard by key
+  prefix; `createTokenRoute`; direct token mode in `createLigaXTransport` / `useLigaXChat`;
+  `@ligaxai/widget` rebuilt as `<ligax-chat>` (+ `@ligaxai/widget/react`); example `/direct` page.
+  `pnpm check` green. Not yet run against a live platform.
+
 ## Unplanned Changes
 
 _None tracked yet._

@@ -22,7 +22,7 @@ Authoritative stack facts for this repository. When another doc disagrees, this 
 | ----------------- | -------- | -------------------------------------- | ----------------------------------------- |
 | `@ligaxai/sdk`    | neutral  | `eventsource-parser`                   | `ai`, `next`                              |
 | `@ligaxai/react`  | browser  | `@ligaxai/sdk`                         | `react` (required), `ai`, `@ai-sdk/react` |
-| `@ligaxai/widget` | browser  | `@ligaxai/sdk` (library) / none (IIFE) | —                                         |
+| `@ligaxai/widget` | browser  | `@ligaxai/sdk` (library) / none (IIFE) | `react` (only for `./react`)              |
 
 ## Wire contracts the SDK encodes
 

@@ -7,6 +7,24 @@ Repository-level changes (tooling, docs, CI). Package changelogs are written by 
 
 ## [Unreleased]
 
+### Added — End users connect their own accounts (`feat/end-user-connections`)
+
+- **Contract** — `openapi/openapi.json` re-copied (0.3.0): `POST /connect_sessions`,
+  `GET /connect_sessions/{id}`, `GET /end_users/{end_user_id}/connections`,
+  `DELETE /end_users/{end_user_id}/connections/{connection_id}`, and `connection.created` /
+  `connection.deleted` as subscribable event types. `SPEC_VERSION` = `public-api-spec-v0.3.0`;
+  generated types regenerated.
+- **SDK** — `client.connectSessions.create/get`, `client.endUsers.connections.list/delete`;
+  `ConnectionCreatedWebhookEvent` / `ConnectionDeletedWebhookEvent` in the `WebhookEvent` union
+  (hand-written from the platform's emit code — the spec's `webhooks` section does not describe
+  them); `connectAccount()` browser helper (popup opened inside the click, poll to a terminal status,
+  popup closed) and `ConnectAccountError` (`popup_blocked | popup_closed | timeout`).
+- **React** — `useConnectAccount()` (`idle | connecting | succeeded | failed`, `session`, `error`,
+  `reset`), using the provider's direct-mode token when no client is passed.
+- **Widget** — `data-connectors="gmail,outlook"` (`connectors` attribute / `mount()` option /
+  `<LigaXChat connectors>`): a "Connect your account" area with one humanised button per connector;
+  hides itself on `409 end_user_connections_off`.
+
 ### Added — Browser access and the website widget (`feat/browser-access`)
 
 - **Contract** — `openapi/openapi.json` re-copied from `ligax-enterprise/docs/public-api/spec`:

@@ -34,8 +34,10 @@ string is a token listed in [`TEMPLATE-TOKENS.md`](./TEMPLATE-TOKENS.md) and rew
 6. **Agent API v0.1 resources** (spec `public-api-spec-v0.3.0`) — `runs` (`create`, `stream`,
    `wait`, `get`, `events`, `followEvents`, `cancel`, `resolveInterrupt`), `conversations.get`,
    `profiles.list/get`, `keys.self`, `usage.get`, `webhooks` (`create/list/get/update/delete/ test`,
-   scope `webhooks:manage`), `clientTokens.create`. `apiKey` may be a token provider (refreshed once
-   on `401 token_expired`; `cachedTokenProvider`); in a browser only `lgx_ct_`/`lgx_pk_` keys and
+   scope `webhooks:manage`), `clientTokens.create`, `connectSessions.create/get` and
+   `endUsers.connections.list/delete` (end users' own accounts; `connectAccount()` drives the
+   popup-and-poll flow in a browser). `apiKey` may be a token provider (refreshed once on
+   `401 token_expired`; `cachedTokenProvider`); in a browser only `lgx_ct_`/`lgx_pk_` keys and
    providers are accepted without `dangerouslyAllowBrowser`. `RunStream` over the LAE event stream
    with `TextAssembler` (offset-addressed, replay-safe text).
 7. **Subpaths** — `/errors`, `/webhooks` (Standard Webhooks with WebCrypto; `verify()` typed as the
@@ -44,11 +46,12 @@ string is a token listed in [`TEMPLATE-TOKENS.md`](./TEMPLATE-TOKENS.md) and rew
    `UIMessageChunk`, through your route or directly with `getToken`; `createChatTransport` for
    UI-message-stream routes).
 8. **React** — `LigaXProvider`, `useLigaX`, `useLigaXTransport`, `useLigaXChat({ useChat, ... })` on
-   the LAE transport, in route mode or direct token mode.
+   the LAE transport, in route mode or direct token mode; `useConnectAccount()`.
 9. **Widget** — `<ligax-chat>` custom element (Shadow DOM) on the v0.1 API: publishable key
-   (`/widget/sessions`) or token URL, streaming, approvals, safe markdown, theming; `mount()` /
-   `define()` / `autoInit()`; `<LigaXChat>` at `@ligaxai/widget/react`; ESM/CJS plus IIFE
-   `dist/widget.global.js` (`window.LigaXWidget`).
+   (`/widget/sessions`) or token URL, streaming, approvals, safe markdown, theming, optional
+   "Connect your account" buttons (`data-connectors`); `mount()` / `define()` / `autoInit()`;
+   `<LigaXChat>` at `@ligaxai/widget/react`; ESM/CJS plus IIFE `dist/widget.global.js`
+   (`window.LigaXWidget`).
 10. **Tests** — vitest across the three packages, all through an injected `fetch`; conformance
     runner over `conformance/` (cases + LAE transcripts).
 11. **Build & release** — tsdown ESM + CJS + d.ts, publint strict, Changesets, CI matrix (Node 22/24
@@ -68,7 +71,7 @@ ligaxai-typescript/
 ├── openapi/               openapi.json — the Agent API contract (public-api-spec-v0.3.0)
 ├── packages/
 │   ├── sdk/               src/{client,index,types,errors,webhooks,next,ai-sdk,version}.ts, src/core/*, src/lib/{lae,run-stream,text-assembler}.ts, src/resources/*, src/generated/*
-│   ├── react/             src/{provider.tsx,chat.ts,index.ts}
+│   ├── react/             src/{provider.tsx,chat.ts,connect.ts,index.ts}
 │   └── widget/            src/{index,global,element,session,markdown,styles,react}.ts
 ├── scripts/               bootstrap.mjs · gen-types.mjs · sync-spec.mjs
 ├── SPEC_VERSION           public-api-spec-v0.3.0

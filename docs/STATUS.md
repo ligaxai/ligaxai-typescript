@@ -40,6 +40,12 @@ alongside every substantive change (see "Living docs" in [`CLAUDE.md`](../CLAUDE
   `@ligaxai/widget` rebuilt as `<ligax-chat>` (+ `@ligaxai/widget/react`); example `/direct` page.
   `pnpm check` green. Not yet run against a live platform.
 
+- **End users' own accounts (2026-10-22, `feat/end-user-connections`, unpushed)** — platform Phase 6
+  on the SDK side: spec `public-api-spec-v0.3.0`; `connectSessions.create/get`,
+  `endUsers.connections.list/delete`, `connection.*` webhook events; `connectAccount()`
+  popup-and-poll helper; `useConnectAccount()`; widget `data-connectors`. `pnpm check` green. Not
+  yet run against a live platform.
+
 ## Unplanned Changes
 
 _None tracked yet._

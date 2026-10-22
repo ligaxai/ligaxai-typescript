@@ -27,17 +27,18 @@ Pin a version in production (`@ligaxai/widget@x.y.z/dist/widget.global.js`) and 
 hash if you serve it from a CDN. The script defines `window.LigaXWidget` (`mount`, `define`,
 `autoInit`).
 
-| Attribute              | Meaning                                                                                          |
-| ---------------------- | ------------------------------------------------------------------------------------------------ |
-| `data-publishable-key` | `lgx_pk_…`. Opens an anonymous session per visitor (`POST /widget/sessions`).                    |
-| `data-profile-id`      | `prf_…`. Required with a publishable key; optional with a token URL that answers `profile_id`.   |
-| `data-token-url`       | Your endpoint answering `{ token, expires_at, profile_id }`; called with the page's cookies.     |
-| `data-base-url`        | API base URL for a non-production platform. Default `https://enterprise.ligax.ai/api/public/v1`. |
-| `data-title`           | Panel heading. Default "Chat".                                                                   |
-| `data-greeting`        | A first message shown locally (not sent to the agent).                                           |
-| `data-placeholder`     | Composer placeholder.                                                                            |
-| `data-position`        | `bottom-right` (default) or `bottom-left`.                                                       |
-| `data-open`            | Start with the panel open.                                                                       |
+| Attribute              | Meaning                                                                                           |
+| ---------------------- | ------------------------------------------------------------------------------------------------- |
+| `data-publishable-key` | `lgx_pk_…`. Opens an anonymous session per visitor (`POST /widget/sessions`).                     |
+| `data-profile-id`      | `prf_…`. Required with a publishable key; optional with a token URL that answers `profile_id`.    |
+| `data-token-url`       | Your endpoint answering `{ token, expires_at, profile_id }`; called with the page's cookies.      |
+| `data-base-url`        | API base URL for a non-production platform. Default `https://enterprise.ligax.ai/api/public/v1`.  |
+| `data-title`           | Panel heading. Default "Chat".                                                                    |
+| `data-greeting`        | A first message shown locally (not sent to the agent).                                            |
+| `data-placeholder`     | Composer placeholder.                                                                             |
+| `data-position`        | `bottom-right` (default) or `bottom-left`.                                                        |
+| `data-open`            | Start with the panel open.                                                                        |
+| `data-connectors`      | Comma-separated connector keys (`gmail,outlook`): a "Connect your account" area, one button each. |
 
 ## Before it works
 
@@ -98,6 +99,15 @@ register the element and write it in markup: `define()`, then
   `**bold**`, `` `code` ``, fenced code, and links whose target is `https:` (opened with
   `rel="noopener noreferrer"`). Nothing from the model is ever assigned to `innerHTML`; images are
   not rendered.
+- **Connect your account.** With `data-connectors` (or `connectors` in `mount()` / `<LigaXChat>`),
+  the panel shows a "Connect your account" area with one button per connector, labelled with a
+  readable name (`google_calendar` → "Google Calendar"). A click opens the provider's consent page
+  in a popup — from the click itself, so pop-up blockers allow it — using the widget's own client
+  token, so the visitor connects **their** account; the area then confirms "Gmail is connected."
+  Needs the profile's **End users can connect their own accounts** switch and the connector on the
+  agent; if the switch is off (`409 end_user_connections_off`) the area hides itself. A blocked
+  popup, a declined consent or a connector that cannot be connected here each get a one-line
+  message.
 - **Accessibility.** The launcher is a labelled button with `aria-expanded`; opening moves focus to
   the composer, `Esc` closes and returns focus; Enter sends, Shift+Enter adds a line; the log is an
   `aria-live` region and a streaming answer is `aria-busy` until it finishes.

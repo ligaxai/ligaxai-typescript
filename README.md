@@ -106,9 +106,10 @@ try {
 ### Webhooks
 
 LigaX can call your URL when a run finishes, fails, is canceled or needs an approval
-(`run.completed`, `run.failed`, `run.canceled`, `run.requires_action`), and when an API key reaches
-its spend limit (`api_key.limit_reached`). Managing endpoints needs a key with the `webhooks:manage`
-scope.
+(`run.completed`, `run.failed`, `run.canceled`, `run.requires_action`), when an API key reaches its
+spend limit (`api_key.limit_reached`), and when an end user connects or disconnects their own
+account (`connection.created`, `connection.deleted` — see below). Managing endpoints needs a key
+with the `webhooks:manage` scope.
 
 **1. Create an endpoint and store its secret.** The signing secret (`whsec_…`) is in the create
 response and nowhere else — later reads show only `secret_hint`.
@@ -248,6 +249,61 @@ const chat = useLigaXChat({ useChat, getToken });
 `<LigaXProvider baseURL=… getClientToken=…>` switches the hooks under it to direct mode the same
 way.
 
+### End users' own accounts
+
+By default a profile acts with the workspace's shared connections. With **End users can connect
+their own accounts** switched on for the profile (in LigaX: the agent's **API & Integrations** tab),
+each of your users connects their own Gmail, Outlook and so on, and runs that name that user
+(`end_user.id`) act with their account. The connector must be part of the agent; only connectors
+that need no typed credentials can be connected this way.
+
+In the browser, with a client-token client (it acts for its own end user and profile), call
+`connectAccount` **from a click handler** — browsers only allow a popup during a user gesture, and
+the helper opens it before its first await:
+
+```ts
+import { connectAccount, ConnectAccountError } from '@ligaxai/sdk';
+
+button.onclick = async () => {
+  try {
+    const session = await connectAccount(client, { connectorKey: 'gmail' });
+    if (session.status === 'succeeded') showConnected(session.connection_id);
+    else showNotConnected(session.status); // 'denied' | 'failed' | 'expired'
+  } catch (err) {
+    if (err instanceof ConnectAccountError)
+      showHint(err.reason); // popup_blocked | popup_closed | timeout
+    else throw err; // APIError: 409 end_user_connections_off, 422 connector_not_available / _not_connectable
+  }
+};
+```
+
+It opens a popup, creates a connect session, sends the popup to the provider's consent page, polls
+until the session leaves `pending` (every 2 s, up to 10 minutes: `pollIntervalMs`, `timeoutMs`,
+`signal`), closes the popup if it is still open and resolves with the final session. If your handler
+has to await something first, open the window at the top of the handler and pass it in:
+`connectAccount(client, { connectorKey, popup: window.open('', 'ligax-connect', 'width=520,height=720') })`.
+In React, `useConnectAccount()` from `@ligaxai/react` wraps it with `state`
+(`idle | connecting | succeeded | failed`), `session` and `error`.
+
+The same calls from your server, with a secret key (scopes `connections:write` / `connections:read`)
+naming the profile and end user:
+
+```ts
+const session = await client.connectSessions.create({
+  connector_key: 'gmail',
+  profile_id: 'prf_…',
+  end_user: { id: user.id, name: user.name },
+});
+// open session.connect_url in a popup on the user's page, then:
+await client.connectSessions.get(session.id, { endUserId: user.id });
+
+const { data } = await client.endUsers.connections.list(user.id); // their own accounts only
+await client.endUsers.connections.delete(user.id, data[0]!.id);
+```
+
+A client token may only name its own end user (`403 token_scope` otherwise). LigaX never redirects
+back to an address from the request, so popup-and-poll is the only way to finish a connection.
+
 ### Website widget
 
 `@ligaxai/widget` is a chat assistant for any website: a `<ligax-chat>` custom element in Shadow DOM
@@ -286,11 +342,12 @@ Before it works:
   expects `{ token, expires_at, profile_id }` — exactly what `createTokenRoute` answers.
 
 Optional attributes: `data-base-url` (non-production platform), `data-title`, `data-greeting`,
-`data-placeholder`, `data-position` (`bottom-right` | `bottom-left`), `data-open`. Theme it from
-your CSS with custom properties (`ligax-chat { --ligax-accent: #7c3aed; --ligax-radius: 8px }`); it
-follows `prefers-color-scheme`. In React, use `<LigaXChat publishableKey profileId />` from
-`@ligaxai/widget/react`. See [packages/widget/README.md](packages/widget/README.md) for the full
-reference and the bundle size.
+`data-placeholder`, `data-position` (`bottom-right` | `bottom-left`), `data-open`, and
+`data-connectors="gmail,outlook"` (a "Connect your account" area — see the widget README). Theme it
+from your CSS with custom properties
+(`ligax-chat { --ligax-accent: #7c3aed; --ligax-radius: 8px }`); it follows `prefers-color-scheme`.
+In React, use `<LigaXChat publishableKey profileId />` from `@ligaxai/widget/react`. See
+[packages/widget/README.md](packages/widget/README.md) for the full reference and the bundle size.
 
 ## Client options
 

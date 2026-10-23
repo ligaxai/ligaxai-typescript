@@ -15,8 +15,8 @@ alongside every substantive change (see "Living docs" in [`CLAUDE.md`](../CLAUDE
 
 ## Team Activity
 
-- 2026-10-24 — CI gate (`ci-gate`) on `main` and `dev`, and an allow-list that closes
-  pull requests from other logins. GitHub rulesets for `main`/`dev` are repository settings.
+- 2026-10-24 — CI gate (`ci-gate`) on `main` and `dev`, and an allow-list that closes pull requests
+  from other logins. GitHub rulesets for `main`/`dev` are repository settings.
 
 ### @sadain
 

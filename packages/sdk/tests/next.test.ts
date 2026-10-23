@@ -4,6 +4,8 @@ import { createRouteHandler, createRunProxy, createRunRoute } from '../src/next.
 import { chunkedBody, json, scriptedFetch } from './helpers.js';
 import { laeResponse, simpleRun } from './lae.js';
 
+const JSON_HEADERS = { 'content-type': 'application/json' };
+
 const silent = { error() {}, warn() {}, info() {}, debug() {} };
 
 describe('createRouteHandler', () => {
@@ -22,6 +24,7 @@ describe('createRouteHandler', () => {
     const res = await POST(
       new Request('http://localhost/api/chat', {
         method: 'POST',
+        headers: JSON_HEADERS,
         body: JSON.stringify({ input: 'hi' }),
       }),
     );
@@ -48,7 +51,9 @@ describe('createRouteHandler', () => {
       logger: silent,
       resolve: () => ({ path: '/runs', body: {}, stream: true }),
     });
-    const res = await POST(new Request('http://localhost/x', { method: 'POST', body: '{}' }));
+    const res = await POST(
+      new Request('http://localhost/x', { method: 'POST', headers: JSON_HEADERS, body: '{}' }),
+    );
     expect(res.headers.get('content-type')).toBe('text/event-stream');
     expect(res.headers.get('cache-control')).toContain('no-cache');
     expect(await res.text()).toBe('data: {"a":1}\n\ndata: [DONE]\n\n');
@@ -63,10 +68,17 @@ describe('createRouteHandler', () => {
       logger: silent,
       resolve: () => null,
     });
-    expect((await POST(new Request('http://x', { method: 'POST', body: 'not json' }))).status).toBe(
-      400,
-    );
-    expect((await POST(new Request('http://x', { method: 'POST', body: '{}' }))).status).toBe(400);
+    expect(
+      (
+        await POST(
+          new Request('http://x', { method: 'POST', headers: JSON_HEADERS, body: 'not json' }),
+        )
+      ).status,
+    ).toBe(400);
+    expect(
+      (await POST(new Request('http://x', { method: 'POST', headers: JSON_HEADERS, body: '{}' })))
+        .status,
+    ).toBe(400);
   });
 
   it('forwards upstream API errors with their status and body', async () => {
@@ -80,7 +92,9 @@ describe('createRouteHandler', () => {
       logger: silent,
       resolve: () => ({ path: '/runs', body: {} }),
     });
-    const res = await POST(new Request('http://x', { method: 'POST', body: '{}' }));
+    const res = await POST(
+      new Request('http://x', { method: 'POST', headers: JSON_HEADERS, body: '{}' }),
+    );
     expect(res.status).toBe(422);
     expect(await res.json()).toEqual({ error: { type: 'invalid_request_error', message: 'bad' } });
   });
@@ -134,7 +148,7 @@ describe('createRunRoute', () => {
     const res = await POST(
       new Request('http://localhost/api/chat', {
         method: 'POST',
-        headers: { 'x-session-user': 'user-7' },
+        headers: { ...JSON_HEADERS, 'x-session-user': 'user-7' },
         body: JSON.stringify({
           id: 'chat_1',
           conversation_id: 'conv_CCCCCCCCCCCCCCCCCCCCCCCC',
@@ -182,11 +196,13 @@ describe('createRunRoute', () => {
       fetch,
       logger: silent,
       profileId: PROFILE,
+      allowAnonymous: true,
     });
     await (
       await plain.POST(
         new Request('http://x', {
           method: 'POST',
+          headers: JSON_HEADERS,
           body: JSON.stringify({ input: 'Hi', conversation_id: 'nope' }),
         }),
       )
@@ -199,11 +215,16 @@ describe('createRunRoute', () => {
       fetch,
       logger: silent,
       profileId: PROFILE,
+      allowAnonymous: true,
       mapInput: (body) => ({ text: `Q: ${(body as { q: string }).q}` }),
     });
     await (
       await mapped.POST(
-        new Request('http://x', { method: 'POST', body: JSON.stringify({ q: 'why' }) }),
+        new Request('http://x', {
+          method: 'POST',
+          headers: JSON_HEADERS,
+          body: JSON.stringify({ q: 'why' }),
+        }),
       )
     ).text();
     expect(fetch.calls[1]!.body).toMatchObject({ input: { text: 'Q: why' } });
@@ -229,14 +250,26 @@ describe('createRunRoute', () => {
       fetch,
       logger: silent,
       profileId: PROFILE,
+      allowAnonymous: true,
     });
     expect(
-      (await POST(new Request('http://x', { method: 'POST', body: '{"messages":[]}' }))).status,
+      (
+        await POST(
+          new Request('http://x', {
+            method: 'POST',
+            headers: JSON_HEADERS,
+            body: '{"messages":[]}',
+          }),
+        )
+      ).status,
     ).toBe(400);
-    expect((await POST(new Request('http://x', { method: 'POST', body: 'nope' }))).status).toBe(
-      400,
+    expect(
+      (await POST(new Request('http://x', { method: 'POST', headers: JSON_HEADERS, body: 'nope' })))
+        .status,
+    ).toBe(400);
+    const res = await POST(
+      new Request('http://x', { method: 'POST', headers: JSON_HEADERS, body: '{"input":"Hi"}' }),
     );
-    const res = await POST(new Request('http://x', { method: 'POST', body: '{"input":"Hi"}' }));
     expect(res.status).toBe(402);
     expect(res.headers.get('x-request-id')).toBe('req_9');
     expect(await res.json()).toMatchObject({ error: { code: 'insufficient_credits' } });
@@ -258,7 +291,7 @@ describe('createRunProxy', () => {
     const res = await POST(
       new Request('http://x', {
         method: 'POST',
-        headers: { 'idempotency-key': 'browser-key-123' },
+        headers: { ...JSON_HEADERS, 'idempotency-key': 'browser-key-123' },
         body: JSON.stringify({
           input: 'Hi',
           profile_id: 'prf_other',
@@ -289,14 +322,138 @@ describe('createRunProxy', () => {
       baseURL: 'https://api.example',
       fetch,
       logger: silent,
+      profileId: 'prf_AAAAAAAAAAAAAAAAAAAA',
+      allowAnonymous: true,
     });
     const res = await POST(
       new Request('http://x', {
         method: 'POST',
+        headers: JSON_HEADERS,
         body: JSON.stringify({ profile_id: 'prf_AAAAAAAAAAAAAAAAAAAA', input: 'Hi', mode: 'wait' }),
       }),
     );
     expect(await res.json()).toMatchObject({ id: 'run_1' });
     expect(fetch.calls[0]!.headers.get('accept')).toBe('application/json');
+  });
+});
+
+describe('safe defaults for browser-facing routes', () => {
+  const PROFILE = 'prf_AAAAAAAAAAAAAAAAAAAA';
+  const base = { apiKey: 'k', baseURL: 'https://api.example', logger: silent };
+
+  it('refuses to build a run route that would run for anyone', () => {
+    expect(() => createRunRoute({ ...base, profileId: PROFILE })).toThrow(/resolveEndUser/);
+    expect(() =>
+      createRunProxy({ ...base, profileId: PROFILE } as Parameters<typeof createRunProxy>[0]),
+    ).toThrow(/resolveEndUser/);
+    expect(() =>
+      createRunProxy({ ...base, resolveEndUser: () => 'u' } as unknown as Parameters<
+        typeof createRunProxy
+      >[0]),
+    ).toThrow(/profileId/);
+  });
+
+  it('answers 401 without a signed-in user, before calling the API', async () => {
+    const fetch = scriptedFetch([]);
+    const { POST } = createRunRoute({
+      ...base,
+      fetch,
+      profileId: PROFILE,
+      resolveEndUser: () => null,
+    });
+    const res = await POST(
+      new Request('http://x', { method: 'POST', headers: JSON_HEADERS, body: '{"input":"Hi"}' }),
+    );
+    expect(res.status).toBe(401);
+    expect(fetch.calls).toHaveLength(0);
+  });
+
+  it('refuses cross-site requests and bodies not sent as JSON (CSRF)', async () => {
+    const fetch = scriptedFetch([]);
+    const { POST } = createRunRoute({
+      ...base,
+      fetch,
+      profileId: PROFILE,
+      resolveEndUser: () => 'u',
+    });
+    const crossSite = await POST(
+      new Request('http://x', {
+        method: 'POST',
+        headers: { ...JSON_HEADERS, 'sec-fetch-site': 'cross-site' },
+        body: '{"input":"Hi"}',
+      }),
+    );
+    expect(crossSite.status).toBe(403);
+    const plainText = await POST(
+      new Request('http://x', {
+        method: 'POST',
+        headers: { 'content-type': 'text/plain' },
+        body: '{"input":"Hi"}',
+      }),
+    );
+    expect(plainText.status).toBe(415);
+    expect(fetch.calls).toHaveLength(0);
+  });
+
+  it('the proxy forwards only the fields a browser may set', async () => {
+    const fetch = scriptedFetch([json({ object: 'run', id: 'run_1', status: 'completed' })]);
+    const { POST } = createRunProxy({
+      ...base,
+      fetch,
+      profileId: PROFILE,
+      resolveEndUser: () => 'u',
+    });
+    await POST(
+      new Request('http://x', {
+        method: 'POST',
+        headers: JSON_HEADERS,
+        body: JSON.stringify({
+          input: 'Hi',
+          mode: 'wait',
+          model: 'expensive/x',
+          end_user: { id: 'v' },
+          extra: 1,
+        }),
+      }),
+    );
+    expect(fetch.calls[0]!.body).toEqual({
+      input: 'Hi',
+      mode: 'wait',
+      profile_id: PROFILE,
+      end_user: { id: 'u' },
+    });
+  });
+
+  it('never passes the server key’s own refusal to the browser', async () => {
+    const fetch = scriptedFetch([
+      json(
+        {
+          error: {
+            type: 'authentication_error',
+            code: 'key_revoked',
+            message: 'Key lgx_sk… revoked',
+          },
+        },
+        { status: 401, headers: { 'x-request-id': 'req_1' } },
+      ),
+    ]);
+    const { POST } = createRunProxy({
+      ...base,
+      fetch,
+      maxRetries: 0,
+      profileId: PROFILE,
+      resolveEndUser: () => 'u',
+    });
+    const res = await POST(
+      new Request('http://x', {
+        method: 'POST',
+        headers: JSON_HEADERS,
+        body: '{"input":"Hi","mode":"wait"}',
+      }),
+    );
+    expect(res.status).toBe(502);
+    const text = await res.text();
+    expect(text).not.toContain('key_revoked');
+    expect(res.headers.get('x-request-id')).toBe('req_1');
   });
 });

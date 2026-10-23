@@ -43,7 +43,17 @@ export class Webhook {
   private readonly keyPromise: Promise<CryptoKey>;
 
   constructor(secret: string) {
-    const raw = secret.startsWith('whsec_') ? secret.slice('whsec_'.length) : secret;
+    const raw =
+      typeof secret === 'string' && secret.startsWith('whsec_')
+        ? secret.slice('whsec_'.length)
+        : secret;
+    // Checked here, synchronously: a missing secret (an unset env var) must fail at startup, not
+    // as an unhandled rejection from a key import nobody awaited yet.
+    if (typeof raw !== 'string' || !/^[A-Za-z0-9+/]+={0,2}$/.test(raw) || raw.length < 24) {
+      throw new WebhookVerificationError(
+        'Invalid webhook secret: pass the endpoint’s signing secret (whsec_…).',
+      );
+    }
     this.keyPromise = crypto.subtle.importKey(
       'raw',
       base64Decode(raw),
@@ -51,6 +61,8 @@ export class Webhook {
       false,
       ['sign'],
     );
+    // Never leave a rejection unobserved before the first verify() awaits it.
+    this.keyPromise.catch(() => undefined);
   }
 
   /**
@@ -99,7 +111,8 @@ export class Webhook {
 }
 
 function verifyTimestamp(raw: string, options: VerifyOptions): void {
-  const timestamp = Number(raw);
+  // Whole seconds only, as the Standard Webhooks spec writes them — not `1e9`, `0x…` or `  12 `.
+  const timestamp = /^\d{1,12}$/.test(raw) ? Number(raw) : Number.NaN;
   if (!Number.isFinite(timestamp)) {
     throw new WebhookVerificationError('Invalid signature headers: bad timestamp');
   }

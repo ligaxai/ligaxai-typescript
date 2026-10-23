@@ -1,5 +1,5 @@
 import { BaseClient, type ApiKeyProvider, type Fetch } from './core/base-client.js';
-import { BrowserEnvironmentError } from './core/errors.js';
+import { BrowserEnvironmentError, MissingApiKeyError } from './core/errors.js';
 import { createLogger, type Logger, type LogLevel, parseLogLevel } from './core/logging.js';
 import { isBrowserCredential } from './lib/token-provider.js';
 import { ClientTokens } from './resources/client-tokens.js';
@@ -59,6 +59,21 @@ function readEnv(name: string): string | undefined {
   return process.env[name]?.trim() || undefined;
 }
 
+const LOOPBACK = new Set(['localhost', '127.0.0.1', '[::1]']);
+
+/** `https:` always; `http:` only for a platform on this machine. Anything else would send the key in clear. */
+function checkBaseURL(raw: string): string {
+  let url: URL;
+  try {
+    url = new URL(raw);
+  } catch {
+    throw new TypeError(`Invalid baseURL: ${JSON.stringify(raw)}`);
+  }
+  if (url.protocol === 'https:') return raw;
+  if (url.protocol === 'http:' && LOOPBACK.has(url.hostname)) return raw;
+  throw new TypeError('baseURL must use https:// (http:// is allowed only for localhost).');
+}
+
 export function isBrowserLike(): boolean {
   return (
     typeof window !== 'undefined' &&
@@ -73,7 +88,7 @@ export function isBrowserLike(): boolean {
  */
 export class LigaX extends BaseClient {
   /** The fixed key, when one was given; `undefined` when a token provider supplies it per request. */
-  readonly apiKey: string | undefined;
+  declare readonly apiKey: string | undefined;
   readonly baseURL: string;
 
   readonly runs: Runs;
@@ -89,11 +104,24 @@ export class LigaX extends BaseClient {
 
   constructor(options: ClientOptions = {}) {
     const given = options.apiKey ?? readEnv('LIGAX_API_KEY');
-    const baseURL = options.baseURL ?? readEnv('LIGAX_BASE_URL') ?? DEFAULT_BASE_URL;
+    const baseURL = checkBaseURL(options.baseURL ?? readEnv('LIGAX_BASE_URL') ?? DEFAULT_BASE_URL);
     const guarded = isBrowserLike() && options.dangerouslyAllowBrowser !== true;
 
     if (guarded && typeof given !== 'function' && !(given && isBrowserCredential(given))) {
       throw new BrowserEnvironmentError(BROWSER_MESSAGE);
+    }
+    // Fail here, not as a 401 from a request sent with no credential at all.
+    if (typeof given !== 'function') {
+      if (!given) {
+        throw new MissingApiKeyError(
+          'No API key: pass `apiKey` or set LIGAX_API_KEY (Settings → Developers in LigaX).',
+        );
+      }
+      if (!/^[\x21-\x7e]+$/.test(given)) {
+        throw new MissingApiKeyError(
+          'The API key contains whitespace or control characters; check it was copied exactly.',
+        );
+      }
     }
     // A provider is only known by what it returns; hold each answer to the same rule.
     const apiKey: string | ApiKeyProvider | undefined =
@@ -117,7 +145,13 @@ export class LigaX extends BaseClient {
       logger: createLogger(level, options.logger),
     });
 
-    this.apiKey = typeof given === 'string' ? given : undefined;
+    // Kept off enumeration so `console.log(client)`, `JSON.stringify` and error reporters that
+    // serialise objects never print the key; it is still readable as `client.apiKey`.
+    Object.defineProperty(this, 'apiKey', {
+      value: typeof given === 'string' ? given : undefined,
+      enumerable: false,
+      writable: false,
+    });
     this.baseURL = baseURL;
 
     this.runs = new Runs(this);

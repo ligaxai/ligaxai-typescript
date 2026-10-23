@@ -16,6 +16,13 @@ Set these in the shell or a local dotenv file before `dev` (see `.env.example`; 
 - `LIGAX_API_KEY` — an `lgx_sk_…` key from Settings → Developers.
 - `LIGAX_PROFILE_ID` — the `prf_…` profile to run.
 - `LIGAX_BASE_URL` — only for a non-production platform, e.g. `https://<dev-host>/api/public/v1`.
+- `LIGAX_DEMO_USER` — for a local try-out only: signs every visitor in as this one user. It is
+  ignored in production builds.
+
+**Before you deploy this anywhere:** replace `lib/session.ts` with your own auth. Every run acts as
+the user it returns (with the accounts they connected) and is billed to your key, so without real
+sign-in the routes answer 401. Give the key a spend limit and only the scopes it needs, and put a
+rate limit in front of `/api/chat`.
 
 Open http://localhost:3000 and ask something; http://localhost:3000/direct is the same chat in
 direct mode.

@@ -20,7 +20,7 @@
     "sync-spec": "node scripts/sync-spec.mjs",
     "changeset": "changeset",
     "version": "changeset version && pnpm install --lockfile-only",
-    "release": "pnpm build && npm install -g npm@^11.5.1 && node scripts/publish-packages.mjs latest && changeset tag"
+    "release": "node scripts/publish-packages.mjs release latest"
   },
   "devDependencies": {
     "@changesets/changelog-github": "1.0.1",

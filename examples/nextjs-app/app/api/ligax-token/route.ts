@@ -1,18 +1,14 @@
 import { createTokenRoute } from '@ligaxai/sdk/next';
 
+import { currentUser } from '../../../lib/session';
+
 /**
  * Mints a client token (`lgx_ct_…`) for the signed-in user so the browser can call the API itself
  * (see `app/direct/page.tsx`). The secret key never leaves the server; it needs the
- * `client_tokens:write` scope.
- *
- * `resolveEndUser` must come from **your** session — never from the request body. This example has
- * no sign-in, so it uses one fixed demo user; returning `null` instead answers 401.
+ * `client_tokens:write` scope. The user comes from `currentUser` — your session, never the request
+ * body — and a visitor who is not signed in gets 401.
  */
-const handler = createTokenRoute({
-  profileId: process.env.LIGAX_PROFILE_ID ?? '',
-  resolveEndUser: () => ({ id: 'demo-user', name: 'Demo user' }),
-  expiresIn: 600,
-});
+let handler: ReturnType<typeof createTokenRoute> | undefined;
 
 export async function POST(request: Request): Promise<Response> {
   if (!process.env.LIGAX_PROFILE_ID) {
@@ -21,5 +17,10 @@ export async function POST(request: Request): Promise<Response> {
       { status: 500 },
     );
   }
+  handler ??= createTokenRoute({
+    profileId: process.env.LIGAX_PROFILE_ID,
+    resolveEndUser: currentUser,
+    expiresIn: 600,
+  });
   return handler.POST(request);
 }

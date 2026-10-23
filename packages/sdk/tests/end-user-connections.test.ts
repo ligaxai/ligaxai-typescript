@@ -210,6 +210,28 @@ describe('connectAccount', () => {
     expect(fetch.calls[1]?.url).toBe(`${BASE}/connect_sessions/flow_ABCDEFGH`);
   });
 
+  it('never sends the popup to a non-https connect link, and detaches it from this page', async () => {
+    const popup = new FakePopup() as FakePopup & { opener?: unknown };
+    popup.opener = {};
+    const bad = scriptedFetch([
+      json(session({ connect_url: 'javascript:alert(1)' }), { status: 201 }),
+    ]);
+    await expect(
+      connectAccount(client(bad), { connectorKey: 'gmail', popup, pollIntervalMs: 1 }),
+    ).rejects.toMatchObject({ reason: 'invalid_connect_url' });
+    expect(popup.location.href).toBe('');
+    expect(popup.closed).toBe(true);
+
+    const good = new FakePopup() as FakePopup & { opener?: unknown };
+    good.opener = {};
+    const fetch = scriptedFetch([
+      json(session(), { status: 201 }),
+      json(polled({ status: 'succeeded', connection_id: 'conn_1' })),
+    ]);
+    await connectAccount(client(fetch), { connectorKey: 'gmail', popup: good, pollIntervalMs: 1 });
+    expect(good.opener).toBeNull();
+  });
+
   it('resolves with a denied session rather than throwing', async () => {
     const fetch = scriptedFetch([
       json(session(), { status: 201 }),

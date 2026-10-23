@@ -3,7 +3,7 @@
 Language-neutral request/response cases that every **LigaX** SDK must pass. The canonical copies are
 meant to live in the spec repository and arrive through `pnpm sync-spec` for the tag in
 `SPEC_VERSION`; until that repository publishes them, the cases here are maintained by hand against
-`openapi/openapi.json` (`public-api-spec-v0.6.0`). The runner is
+`openapi/openapi.json` (`public-api-spec-v0.7.0`). The runner is
 `packages/sdk/tests/conformance.test.ts`.
 
 ## `cases/*.json`

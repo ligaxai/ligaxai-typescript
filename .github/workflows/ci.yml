@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
   pull_request:
 
 concurrency:
@@ -16,6 +16,7 @@ jobs:
   check:
     name: node ${{ matrix.node }} · ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
     strategy:
       fail-fast: false
       matrix:
@@ -42,6 +43,7 @@ jobs:
   bun:
     name: bun · vitest
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -62,9 +64,36 @@ jobs:
     # The release workflow holds publish rights; any change to a workflow is audited before merge.
     name: workflow security (zizmor)
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
       - run: uvx zizmor@1.16.0 --offline --min-severity medium .github/workflows
+
+  # One check name for branch protection. A pull request that renames a matrix job still
+  # fails this gate, and protection does not have to list every matrix cell.
+  ci-gate:
+    name: ci-gate
+    needs: [check, bun, workflows]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Fail unless every required job succeeded
+        env:
+          CHECK_RESULT: ${{ needs.check.result }}
+          BUN_RESULT: ${{ needs.bun.result }}
+          WORKFLOWS_RESULT: ${{ needs.workflows.result }}
+        run: |
+          set -eu
+          fail=0
+          for name in CHECK BUN WORKFLOWS; do
+            value="$(printenv "${name}_RESULT")"
+            if [ "$value" != "success" ]; then
+              echo "::error::${name} finished as ${value}"
+              fail=1
+            fi
+          done
+          exit "$fail"

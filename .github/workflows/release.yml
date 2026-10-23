@@ -78,7 +78,7 @@ jobs:
           node-version: 24
       # Trusted publishing needs npm ≥ 11.5.1 doing the publish; an exact version, not a range.
       - run: npm install -g npm@11.21.0
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: npm-tarballs
           path: release-tarballs
@@ -156,7 +156,7 @@ jobs:
         with:
           node-version: 24
       - run: npm install -g npm@11.21.0
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: npm-tarballs
           path: release-tarballs
@@ -170,7 +170,7 @@ jobs:
     steps:
       # Keeps the token: this job pushes the release tags. It uploads no artifacts.
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4 # zizmor: ignore[artipacked]
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: npm-tarballs
           path: release-tarballs

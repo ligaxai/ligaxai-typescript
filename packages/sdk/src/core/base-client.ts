@@ -112,10 +112,20 @@ export class APIPromise<T> extends Promise<T> {
 }
 
 export class BaseClient {
-  protected readonly config: BaseClientConfig;
+  declare protected readonly config: BaseClientConfig;
 
   constructor(config: BaseClientConfig) {
-    this.config = config;
+    // Holds the key: not enumerable, so logging or serialising the client never prints it.
+    Object.defineProperty(this, 'config', { value: config, enumerable: false, writable: false });
+  }
+
+  /** What `console.log(client)` / `util.inspect` show: where it points, never the credential. */
+  [Symbol.for('nodejs.util.inspect.custom')](): string {
+    return `${this.constructor.name} { baseURL: ${JSON.stringify(this.config.baseURL)} }`;
+  }
+
+  toJSON(): { baseURL: string } {
+    return { baseURL: this.config.baseURL };
   }
 
   get<T>(path: string, opts: Omit<RequestOptions, 'method' | 'path'> = {}): APIPromise<T> {
@@ -150,11 +160,35 @@ export class BaseClient {
     return new APIPromise(this.exchange(options), (ex) => this.parseResponse<T>(ex));
   }
 
+  /**
+   * Resolve `path` under `baseURL` — and only there. An absolute URL (`https://elsewhere/…`), a
+   * scheme-relative one (`//elsewhere`) or a `.`/`..` segment (also percent-encoded, as an id
+   * from user input could be) would otherwise send this client's key to another host or another
+   * endpoint, so each is refused before anything is sent.
+   */
   buildURL(path: string, query: RequestOptions['query']): string {
     const base = this.config.baseURL.endsWith('/')
       ? this.config.baseURL
       : `${this.config.baseURL}/`;
-    const url = new URL(path.replace(/^\//, ''), base);
+    const relative = path.replace(/^\//, '');
+    const segments = relative.split(/[?#]/, 1)[0]!.split('/');
+    if (
+      /^[a-z][a-z0-9+.-]*:/i.test(relative) ||
+      relative.startsWith('/') ||
+      relative.includes('\\') ||
+      segments.some((s) => {
+        const decoded = safeDecode(s);
+        // WHATWG URL parsing treats `%2e%2e` as `..`. An escaped `/` (`%2F`) inside an id stays
+        // one segment and is fine.
+        return decoded === '.' || decoded === '..';
+      })
+    ) {
+      throw new TypeError(`Refusing request path outside the API: ${JSON.stringify(path)}`);
+    }
+    const url = new URL(relative, base);
+    if (url.origin !== new URL(base).origin || !url.href.startsWith(base)) {
+      throw new TypeError(`Refusing request path outside the API: ${JSON.stringify(path)}`);
+    }
     if (query) {
       for (const [key, value] of Object.entries(query)) {
         if (value !== undefined && value !== null) url.searchParams.set(key, String(value));
@@ -221,7 +255,15 @@ export class BaseClient {
 
       let response: Response;
       try {
-        response = await this.config.fetch(url, { method: options.method, headers, body, signal });
+        // The API never redirects. Following one would replay this request — body included — to
+        // wherever the redirect points.
+        response = await this.config.fetch(url, {
+          method: options.method,
+          headers,
+          body,
+          signal,
+          redirect: 'error',
+        });
       } catch (cause) {
         if (options.signal?.aborted) {
           throw new APIConnectionError('Request was aborted.', { cause });
@@ -281,7 +323,9 @@ export class BaseClient {
 }
 
 /**
- * Server says explicitly, else: retry on timeout/conflict/throttle/5xx. Never on 402 (a spend limit
+ * Server says explicitly, else: retry on timeout/throttle/5xx. A `409` is retried only when the
+ * server marks it retryable (`x-should-retry: true`, e.g. `idempotency_in_progress`): other
+ * conflicts will not resolve themselves. Never on 402 (a spend limit
  * or credits — retrying spends nothing and changes nothing), 403 (a scope the key lacks) or 422 (the
  * request itself is wrong, e.g. an `Idempotency-Key` reused with a different body).
  */
@@ -291,7 +335,7 @@ export function shouldRetry(response: Response): boolean {
   if (override === 'false') return false;
   const s = response.status;
   if (s === 402 || s === 403 || s === 422) return false;
-  return s === 408 || s === 409 || s === 429 || s >= 500;
+  return s === 408 || s === 429 || s >= 500;
 }
 
 /** `retry-after-ms`, then `retry-after` (seconds or HTTP-date), both capped; else backoff. */
@@ -334,6 +378,14 @@ export function sleep(ms: number, signal: AbortSignal | null | undefined): Promi
     };
     signal?.addEventListener('abort', onAbort, { once: true });
   });
+}
+
+function safeDecode(segment: string): string {
+  try {
+    return decodeURIComponent(segment);
+  } catch {
+    return segment;
+  }
 }
 
 function isFormData(value: unknown): value is FormData {

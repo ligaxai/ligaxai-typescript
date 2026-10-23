@@ -1,18 +1,17 @@
 import { createRunRoute } from '@ligaxai/sdk/next';
 
+import { currentUser } from '../../../lib/session';
+
 /**
- * The only server code in the example, and the only place the secret key is used: the SDK reads
+ * The only server code that runs agents, and the only place the secret key is used: the SDK reads
  * `LIGAX_API_KEY` (and `LIGAX_BASE_URL` for a non-production platform) from the server environment.
  * Never expose either to the browser — no `NEXT_PUBLIC_` prefix.
  *
- * The profile is pinned here, not chosen by the browser. Wire `resolveEndUser` to your own session
- * so each signed-in user gets their own conversations (and so a profile that requires an end user
- * works).
+ * The profile is pinned here, not chosen by the browser, and every run is for the signed-in user
+ * from `currentUser` — a visitor who is not signed in gets 401. Put a spend limit on the key and a
+ * rate limit in front of this route before you deploy it.
  */
-const handler = createRunRoute({
-  profileId: process.env.LIGAX_PROFILE_ID ?? '',
-  resolveEndUser: () => undefined,
-});
+let handler: ReturnType<typeof createRunRoute> | undefined;
 
 export async function POST(request: Request): Promise<Response> {
   if (!process.env.LIGAX_PROFILE_ID) {
@@ -21,5 +20,9 @@ export async function POST(request: Request): Promise<Response> {
       { status: 500 },
     );
   }
+  handler ??= createRunRoute({
+    profileId: process.env.LIGAX_PROFILE_ID,
+    resolveEndUser: currentUser,
+  });
   return handler.POST(request);
 }

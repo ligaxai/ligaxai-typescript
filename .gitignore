@@ -14,3 +14,5 @@ coverage/
 
 # Tarballs from `pnpm pack` (scripts/publish-packages.mjs)
 *.tgz
+.release-tarballs/
+release-tarballs/

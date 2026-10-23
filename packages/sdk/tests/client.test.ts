@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { LigaX, DEFAULT_BASE_URL } from '../src/index.js';
-import { BrowserEnvironmentError } from '../src/core/errors.js';
+import { BrowserEnvironmentError, MissingApiKeyError } from '../src/core/errors.js';
 import { json, scriptedFetch } from './helpers.js';
 
 describe('LigaX client options', () => {
@@ -51,11 +51,61 @@ describe('LigaX client options', () => {
     expect(call?.headers.get('idempotency-key')).toBeNull();
   });
 
-  it('omits Authorization when no key is configured (client-token flows set their own header)', async () => {
+  it('refuses to build a client with no usable key, before any request', () => {
+    const fetch = scriptedFetch([]);
+    const saved = process.env['LIGAX_API_KEY'];
+    delete process.env['LIGAX_API_KEY'];
+    try {
+      expect(() => new LigaX({ baseURL: 'https://api.example', fetch })).toThrow(
+        MissingApiKeyError,
+      );
+      expect(() => new LigaX({ apiKey: '', baseURL: 'https://api.example', fetch })).toThrow(
+        MissingApiKeyError,
+      );
+      expect(
+        () => new LigaX({ apiKey: 'lgx_sk_dev_abc\n', baseURL: 'https://api.example', fetch }),
+      ).toThrow(MissingApiKeyError);
+    } finally {
+      if (saved !== undefined) process.env['LIGAX_API_KEY'] = saved;
+    }
+    expect(fetch.calls).toHaveLength(0);
+  });
+
+  it('a per-request token comes from a provider', async () => {
     const fetch = scriptedFetch([json({ object: 'api_key', id: 'key_1' })]);
-    const client = new LigaX({ baseURL: 'https://api.example', fetch });
-    await client.keys.self({ headers: { Authorization: 'Bearer lgx_ct_abc' } });
+    const client = new LigaX({ apiKey: () => 'lgx_ct_abc', baseURL: 'https://api.example', fetch });
+    await client.keys.self();
     expect(fetch.calls[0]?.headers.get('authorization')).toBe('Bearer lgx_ct_abc');
+  });
+
+  it('never shows the key when the client is logged or serialised', async () => {
+    const { inspect } = await import('node:util');
+    const client = new LigaX({ apiKey: 'lgx_sk_dev_SECRETVALUE', baseURL: 'https://api.example' });
+    expect(inspect(client, { depth: 5 })).not.toContain('SECRETVALUE');
+    expect(JSON.stringify(client)).not.toContain('SECRETVALUE');
+    expect(Object.keys(client)).not.toContain('apiKey');
+    expect(client.apiKey).toBe('lgx_sk_dev_SECRETVALUE');
+  });
+
+  it('accepts https, and http only on this machine', () => {
+    const ok = (baseURL: string) => new LigaX({ apiKey: 'k', baseURL });
+    expect(() => ok('https://api.example/api/public/v1')).not.toThrow();
+    expect(() => ok('http://localhost:3000/api/public/v1')).not.toThrow();
+    expect(() => ok('http://api.example/api/public/v1')).toThrow(TypeError);
+  });
+
+  it('refuses request paths that would leave the API', async () => {
+    const fetch = scriptedFetch([]);
+    const client = new LigaX({ apiKey: 'k', baseURL: 'https://api.example/api/public/v1', fetch });
+    for (const path of [
+      'https://evil.example/x',
+      '//evil.example/x',
+      '/runs/../../admin',
+      '/runs/%2e%2e/keys',
+    ]) {
+      await expect(client.get(path)).rejects.toThrow(TypeError);
+    }
+    expect(fetch.calls).toHaveLength(0);
   });
 
   it('exposes the request id on the result and via withResponse()', async () => {

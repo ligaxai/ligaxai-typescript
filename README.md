@@ -356,7 +356,9 @@ when the agent asks before acting, and friendly errors. One script tag:
 ```html
 <!-- Anonymous visitors: a publishable key -->
 <script
-  src="https://unpkg.com/@ligaxai/widget/dist/widget.global.js"
+  src="https://cdn.jsdelivr.net/npm/@ligaxai/widget@0.1.0/dist/widget.global.js"
+  integrity="sha384-…"
+  crossorigin="anonymous"
   data-publishable-key="lgx_pk_live_…"
   data-profile-id="prf_…"
   data-title="Acme support"
@@ -366,7 +368,9 @@ when the agent asks before acting, and friendly errors. One script tag:
 
 <!-- Signed-in users: your own token endpoint (e.g. createTokenRoute above) -->
 <script
-  src="https://unpkg.com/@ligaxai/widget/dist/widget.global.js"
+  src="https://cdn.jsdelivr.net/npm/@ligaxai/widget@0.1.0/dist/widget.global.js"
+  integrity="sha384-…"
+  crossorigin="anonymous"
   data-token-url="/api/ligax-token"
   async
 ></script>
@@ -415,6 +419,30 @@ The MCP server offers `ask`, `get_run` and `respond`. For A2A, the agent card is
 `docs/public-api/mcp-and-a2a.md` guide covers client configuration, the tool and task mappings, and
 what is not supported yet (A2A file parts and push notifications — upload with `files.create` and
 pass `attachments` instead).
+
+## Before you integrate: security
+
+An agent you run through this SDK acts with your workspace's connected accounts (mail, files,
+tickets) and spends your credit. The rules that matter:
+
+- **Secret keys (`lgx_sk_…`) stay on your server.** Never in a browser, mobile app, repository or
+  log; the SDK and the API both refuse one in a browser. A secret key can act as **any** of your end
+  users, so restrict it to the profiles it needs and only the scopes it uses, and give it a spend
+  limit.
+- **Website keys (`lgx_pk_…`) are public.** Anyone can copy one from your page. Visitors on a
+  website key can only chat (no account connections, uploads or approvals); give the key a small
+  spend limit and attach it only to profiles anyone may use.
+- **Say who the user is from your own session.** The server helpers require it (or an explicit
+  anonymous opt-in) and answer 401 otherwise. Never take the end user from the request body or a
+  header the browser sets.
+- **Anything the agent reads can try to instruct it** — emails, documents, web pages, tool results.
+  Keep approvals on for sending, writing and deleting, and answer them from your server or a
+  signed-in user, never automatically.
+- **Treat the agent's answer as untrusted input** to your app: never `eval` it or put it into HTML
+  unescaped; don't auto-load links or images it writes.
+- **Verify every webhook** with the SDK's verifier, deduplicate on `webhook-id`, and answer fast.
+- **Pin versions** and commit your lockfile. Releases carry provenance: `npm audit signatures` (npm)
+  or the PyPI attestation. Report vulnerabilities to security@ligaments.ai.
 
 ## Client options
 

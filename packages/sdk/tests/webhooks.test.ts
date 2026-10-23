@@ -170,3 +170,11 @@ describe('verify typing', () => {
     expect(parsed).toEqual(event);
   });
 });
+
+describe('webhook secret and timestamp strictness', () => {
+  it('refuses a missing or malformed secret synchronously', () => {
+    expect(() => new Webhook('')).toThrow(WebhookVerificationError);
+    expect(() => new Webhook('whsec_')).toThrow(WebhookVerificationError);
+    expect(() => new Webhook(undefined as unknown as string)).toThrow(WebhookVerificationError);
+  });
+});

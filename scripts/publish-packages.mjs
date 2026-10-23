@@ -1,32 +1,44 @@
 #!/usr/bin/env node
 /**
- * Publish every public workspace package with the **npm CLI**, under one dist-tag:
+ * Pack and publish every public workspace package with the **npm CLI**, under one dist-tag.
  *
- *   node scripts/publish-packages.mjs dev      # dev snapshots (after snapshot-version.mjs)
- *   node scripts/publish-packages.mjs latest   # stable (after `changeset version`)
+ *   node scripts/publish-packages.mjs pack <dir>            # CI build job: pnpm-pack into <dir>
+ *   node scripts/publish-packages.mjs publish <dir> <tag>   # CI publish job: npm-publish what <dir> holds
+ *   node scripts/publish-packages.mjs release <tag>         # one machine: pack, then publish (first release)
  *
- * Why not `pnpm publish` / `changeset publish`: npm's trusted publishing (OIDC, provenance, no token)
- * is documented for `npm publish` with npm ≥ 11.5.1 and says nothing about other clients. So each
- * package is packed with pnpm — which rewrites `workspace:*` ranges to real versions — and the tarball
- * is published by npm.
+ * **Why two steps in CI.** The job that can publish (it holds the OIDC credential npm trusted
+ * publishing turns into a publish token) must run as little code as possible: no `pnpm install`, no
+ * build, no test, no dependency's lifecycle script — that is how 2025–2026 npm worms got release
+ * rights. So the build job packs the tarballs and uploads them; the publish job only downloads them
+ * and runs `npm publish` on each. `<dir>/manifest.json` says what was packed, in publish order.
  *
- * Idempotent: a version already on the registry is skipped, so a re-run after a partial failure
- * publishes only what is missing.
+ * **Why npm, not pnpm/changesets publish.** Trusted publishing is documented for `npm publish` with
+ * the npm CLI ≥ 11.5.1. pnpm still does the packing, because it rewrites `workspace:*` ranges to the
+ * real versions.
+ *
+ * **Order.** `@ligaxai/sdk` first: the others depend on its exact version and must never be on the
+ * registry before it.
+ *
+ * Every mode is spelled out (`release <tag>`, never a bare word) so a typo can never be read as a
+ * dist-tag and published. Idempotent: a version already on the registry is skipped, so a re-run
+ * after a partial failure publishes only what is missing.
  */
 import { execFileSync } from 'node:child_process';
-import { readdirSync, readFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { basename, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-
-const tag = process.argv[2];
-if (!tag || !/^[a-z][a-z0-9-]*$/.test(tag)) {
-  console.error('usage: node scripts/publish-packages.mjs <dist-tag>');
-  process.exit(2);
-}
 
 const ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 const pnpm = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
+const TAGS = new Set(['dev', 'latest']);
+
+function usage() {
+  console.error(
+    'usage: publish-packages.mjs pack <dir> | publish <dir> <dev|latest> | release <dev|latest>',
+  );
+  process.exit(2);
+}
 
 function published(name, version) {
   try {
@@ -40,31 +52,72 @@ function published(name, version) {
   }
 }
 
-// The client first: `@ligaxai/react` and `@ligaxai/widget` depend on the exact `@ligaxai/sdk` version
-// being published, and must never be on the registry before it.
-const dirs = readdirSync(join(ROOT, 'packages')).sort((a, b) =>
-  a === 'sdk' ? -1 : b === 'sdk' ? 1 : a.localeCompare(b),
-);
-for (const dir of dirs) {
-  const cwd = join(ROOT, 'packages', dir);
-  let pkg;
-  try {
-    pkg = JSON.parse(readFileSync(join(cwd, 'package.json'), 'utf8'));
-  } catch {
-    continue;
+/** Public workspace packages, `sdk` first. */
+function packages() {
+  const dirs = readdirSync(join(ROOT, 'packages')).sort((a, b) =>
+    a === 'sdk' ? -1 : b === 'sdk' ? 1 : a.localeCompare(b),
+  );
+  const out = [];
+  for (const dir of dirs) {
+    const cwd = join(ROOT, 'packages', dir);
+    let pkg;
+    try {
+      pkg = JSON.parse(readFileSync(join(cwd, 'package.json'), 'utf8'));
+    } catch {
+      continue;
+    }
+    if (!pkg.private) out.push({ cwd, name: pkg.name, version: pkg.version });
   }
-  if (pkg.private) continue;
-  if (published(pkg.name, pkg.version)) {
-    console.log(`${pkg.name}@${pkg.version} already published — skipped`);
-    continue;
-  }
-  const packed = execFileSync(pnpm, ['pack', '--pack-destination', cwd], { cwd, encoding: 'utf8' })
-    .trim()
-    .split('\n')
-    .pop();
-  console.log(`publishing ${pkg.name}@${pkg.version} (${tag})`);
-  execFileSync(npm, ['publish', packed, '--access', 'public', '--tag', tag], {
-    cwd,
-    stdio: 'inherit',
-  });
+  return out;
 }
+
+function pack(dir) {
+  const dest = resolve(dir);
+  mkdirSync(dest, { recursive: true });
+  const manifest = [];
+  for (const { cwd, name, version } of packages()) {
+    const packed = execFileSync(pnpm, ['pack', '--pack-destination', dest], {
+      cwd,
+      encoding: 'utf8',
+    })
+      .trim()
+      .split('\n')
+      .pop();
+    manifest.push({ name, version, file: basename(packed) });
+    console.log(`packed ${name}@${version}`);
+  }
+  writeFileSync(join(dest, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`);
+}
+
+function publish(dir, tag) {
+  const src = resolve(dir);
+  const manifest = JSON.parse(readFileSync(join(src, 'manifest.json'), 'utf8'));
+  for (const { name, version, file } of manifest) {
+    // The manifest comes from our own build job; even so, each entry only ever becomes a path
+    // inside <dir> and an argv entry — never a shell string — and must look like ours.
+    if (!/^@ligaxai\/[a-z0-9-]+$/.test(name) || !/^[\w.+-]+\.tgz$/.test(file)) {
+      throw new Error(`unexpected manifest entry: ${JSON.stringify({ name, file })}`);
+    }
+    // A dev snapshot must never go out as `latest`, nor a stable version under `dev`.
+    if ((tag === 'dev') !== /-dev\./.test(version)) {
+      throw new Error(`${name}@${version} does not belong under the "${tag}" dist-tag`);
+    }
+    if (published(name, version)) {
+      console.log(`${name}@${version} already published — skipped`);
+      continue;
+    }
+    console.log(`publishing ${name}@${version} (${tag})`);
+    execFileSync(npm, ['publish', join(src, file), '--access', 'public', '--tag', tag], {
+      stdio: 'inherit',
+    });
+  }
+}
+
+const [mode, a, b] = process.argv.slice(2);
+if (mode === 'pack' && a && !b) pack(a);
+else if (mode === 'publish' && a && TAGS.has(b)) publish(a, b);
+else if (mode === 'release' && TAGS.has(a) && !b) {
+  const dir = join(ROOT, '.release-tarballs');
+  pack(dir);
+  publish(dir, a);
+} else usage();

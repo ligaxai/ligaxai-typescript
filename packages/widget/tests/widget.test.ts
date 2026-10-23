@@ -514,6 +514,39 @@ describe('<ligax-chat> connect your account', () => {
   });
 });
 
+describe('<ligax-chat> approvals answered by the site', () => {
+  it('a signed-in user whose approval the site keeps for its server sees a notice, not an error', async () => {
+    const asking =
+      frame('stream.ready', null) +
+      frame('tool.start', 1, { tool_call_id: 'call_1', name: 'crm_create_ticket' }) +
+      frame('interrupt.raised', 2, {
+        interrupt_id: 'int_1',
+        kind: 'tool_approval',
+        tool_call: { tool_name: 'crm_create_ticket' },
+      });
+    const fetch = fakeFetch({
+      'POST /api/ligax/token': session(),
+      'POST /runs': sse(asking),
+      'POST /runs/run_1/interrupts/int_1': json(
+        { error: { type: 'permission_error', code: 'approval_not_allowed', message: 'x' } },
+        403,
+      ),
+    });
+    const el = signedIn(fetch);
+    const done = el.send('open a ticket');
+    const card = await vi.waitFor(() => {
+      const found = shadow(el).querySelector<HTMLElement>('.card .approve');
+      if (!found) throw new Error('no card yet');
+      return found;
+    });
+    card.click();
+    await done;
+    const notes = [...shadow(el).querySelectorAll<HTMLElement>('.card')].map((c) => c.textContent);
+    expect(notes.some((t) => t?.includes('approval from the team'))).toBe(true);
+    expect(shadow(el).querySelector('.msg.error')).toBeNull();
+  });
+});
+
 describe('<ligax-chat> anonymous visitors', () => {
   it('chat only: no attach button and no connect buttons, whatever the page asks for', () => {
     const el = widget(fakeFetch({}), { files: true, connectors: 'gmail' });

@@ -374,7 +374,20 @@ export function getElementClass(): new () => LigaXChatElement {
       const decision = await this.ask(pending);
       this.setActivity(decision === 'approve' ? 'Approved. Continuing…' : 'Declined.');
       const client = this.ensureClient();
-      await client.runs.resolveInterrupt(pending.runId, pending.interruptId, { decision });
+      try {
+        await client.runs.resolveInterrupt(pending.runId, pending.interruptId, { decision });
+      } catch (error) {
+        // The assistant's approvals are answered by the site's server (the profile's setting), not
+        // from the browser: say so plainly instead of showing an error.
+        if (error instanceof APIError && error.code === 'approval_not_allowed') {
+          this.setActivity('');
+          this.notice(
+            'This needs approval from the team before the assistant can go on. Check back later for the answer.',
+          );
+          return;
+        }
+        throw error;
+      }
       const resumed = await client.runs.followEvents(pending.runId, { after: lastSeq });
       await this.follow(resumed, bubble, assembler);
     }

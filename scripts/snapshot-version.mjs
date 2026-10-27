@@ -15,6 +15,7 @@
  * `workspace:*` ranges are rewritten by pnpm at publish time, so only the `version` field changes.
  * The example app is skipped because it is private.
  */
+import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -61,6 +62,51 @@ function bumpVersion(version, bump) {
   return version;
 }
 
+/** `[major, minor, patch]` of a version, ignoring any pre-release suffix. */
+const core = (v) =>
+  String(v)
+    .split('-')[0]
+    .split('.')
+    .map((n) => Number.parseInt(n, 10) || 0);
+const cmpCore = (a, b) => {
+  const [x, y] = [core(a), core(b)];
+  for (let i = 0; i < 3; i++) if (x[i] !== y[i]) return x[i] - y[i];
+  return 0;
+};
+const fmt = (parts) => parts.join('.');
+
+/**
+ * The lowest base a new snapshot may use, from what the registry already holds.
+ *
+ * **Snapshots must only ever go up.** The changeset-derived base can fall behind the registry —
+ * once the pending changesets are consumed, or after a stable release — and `0.0.1-dev.40` sorts
+ * *below* an already-published `0.1.0-dev.31`, so `@dev` would silently go backwards. The floor is
+ * the base of the current `dev` dist-tag, and the next patch after the current stable `latest`.
+ * Offline (a local run), there is no floor and the changeset base stands.
+ */
+function registryFloor(name) {
+  let tags;
+  try {
+    const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+    tags = JSON.parse(
+      execFileSync(npm, ['view', name, 'dist-tags', '--json'], {
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'ignore'],
+      }),
+    );
+  } catch {
+    return null; // not published yet, or no network
+  }
+  let floor = null;
+  if (tags.dev) floor = fmt(core(tags.dev));
+  if (tags.latest && !String(tags.latest).includes('-')) {
+    const [a, b, c] = core(tags.latest);
+    const next = fmt([a, b, c + 1]);
+    if (!floor || cmpCore(next, floor) > 0) floor = next;
+  }
+  return floor;
+}
+
 const bumps = pendingBumps();
 const dir = resolve(ROOT, 'packages');
 for (const name of readdirSync(dir)) {
@@ -72,7 +118,12 @@ for (const name of readdirSync(dir)) {
     continue;
   }
   if (pkg.private) continue;
-  const base = bumpVersion(String(pkg.version).split('-')[0], bumps.get(pkg.name));
+  let base = bumpVersion(String(pkg.version).split('-')[0], bumps.get(pkg.name));
+  const floor = registryFloor(pkg.name);
+  if (floor && cmpCore(floor, base) > 0) {
+    console.log(`${pkg.name}: base ${base} is behind the registry; using ${floor}`);
+    base = floor;
+  }
   pkg.version = `${base}-${suffix}`;
   writeFileSync(file, `${JSON.stringify(pkg, null, 2)}\n`);
   console.log(`${pkg.name}@${pkg.version}`);

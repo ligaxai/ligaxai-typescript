@@ -15,8 +15,16 @@ name: Release
 # The `npm` and `npm-dev` environments must be restricted to `main` and `dev` (repository settings),
 # and npm's trusted-publisher entry names this file and the environment.
 #
-# Publishing is gated on the repository variable NPM_PUBLISH_ENABLED=true; until it is set, the
-# builds still run and pack everything, and nothing is published.
+# **Two switches, one per channel** (repository *variables*, not secrets: a secret cannot be read in a
+# job's `if:`, and an on/off switch is not secret). Anything other than the exact string `true` is off.
+#   PUBLISH_DEV_ENABLED   true → every push to `dev` publishes a snapshot under `dev`.
+#   PUBLISH_MAIN_ENABLED  true → pushes to `main` run the stable (Changesets) release under `latest`.
+# While a switch is off the dev build still runs and packs (so a broken build is still caught), the
+# main release does nothing at all, and the run ends with a notice saying which switch is off.
+#
+# **Versions only go up.** `snapshot-version.mjs` never stamps a base below what the registry already
+# holds, and `publish-packages.mjs` refuses any version that is not newer than the dist-tag it would
+# move. A re-run of the same workflow run reuses its run number and skips what is already published.
 #
 # The first publish of each package is manual (`node scripts/publish-packages.mjs release dev` from a
 # maintainer's machine, with 2FA): npm attaches a trusted publisher only to a package that exists.
@@ -55,14 +63,14 @@ jobs:
           path: release-tarballs/
           if-no-files-found: error
           retention-days: 7
-      - name: Publishing is not switched on yet
-        if: vars.NPM_PUBLISH_ENABLED != 'true'
+      - name: Dev publishing is switched off
+        if: vars.PUBLISH_DEV_ENABLED != 'true'
         run: |
-          echo "::notice title=npm publish skipped::Set NPM_PUBLISH_ENABLED=true after the first manual publish and trusted publishing setup. Packed; nothing published."
+          echo "::notice title=npm publish skipped::Repository variable PUBLISH_DEV_ENABLED is not 'true'. Built and packed; nothing published."
 
   publish-dev:
     needs: build-dev
-    if: github.ref == 'refs/heads/dev' && vars.NPM_PUBLISH_ENABLED == 'true'
+    if: github.ref == 'refs/heads/dev' && vars.PUBLISH_DEV_ENABLED == 'true'
     runs-on: ubuntu-latest
     environment: npm-dev
     permissions:
@@ -85,8 +93,16 @@ jobs:
       - run: node scripts/publish-packages.mjs publish release-tarballs dev
 
   # ── stable releases ──────────────────────────────────────────────────────────────────────────
+  main-switched-off:
+    if: github.ref == 'refs/heads/main' && vars.PUBLISH_MAIN_ENABLED != 'true'
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - run: |
+          echo "::notice title=Stable release skipped::Repository variable PUBLISH_MAIN_ENABLED is not 'true'. Nothing versioned or published from main."
+
   version:
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && vars.PUBLISH_MAIN_ENABLED == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -141,7 +157,7 @@ jobs:
 
   publish-stable:
     needs: build-stable
-    if: vars.NPM_PUBLISH_ENABLED == 'true'
+    if: vars.PUBLISH_MAIN_ENABLED == 'true'
     runs-on: ubuntu-latest
     environment: npm
     permissions:

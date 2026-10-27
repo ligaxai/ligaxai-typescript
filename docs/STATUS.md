@@ -15,6 +15,9 @@ alongside every substantive change (see "Living docs" in [`CLAUDE.md`](../CLAUDE
 
 ## Team Activity
 
+- 2026-10-24 — CI gate (`ci-gate`) on `main` and `dev`, and an allow-list that closes pull requests
+  from other logins. GitHub rulesets for `main`/`dev` are repository settings.
+
 ### @sadain
 
 - **Project base setup (2026-10-22)** — Scaffolded the workspace from the design brief: the

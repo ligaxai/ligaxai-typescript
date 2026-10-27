@@ -7,6 +7,11 @@ Repository-level changes (tooling, docs, CI). Package changelogs are written by 
 
 ## [Unreleased]
 
+### Changed
+
+- CI runs on pushes to `main` and `dev` and ends in one `ci-gate` job for branch protection.
+  Pull requests from logins outside `.github/CONTRIBUTORS` are closed; issues stay open.
+
 ### Added — Files, attachments and MCP/A2A docs (`feat/files-and-protocols`)
 
 - **Contract** — `openapi/openapi.json` re-copied (0.5.0): `POST /files`, `GET`/`DELETE /files/{id}`,

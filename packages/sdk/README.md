@@ -561,8 +561,8 @@ If you are an AI assistant writing code with this package, follow these facts ex
   (React hooks) and
   [@ligaxai/widget](https://github.com/ligaxai/ligaxai-typescript/tree/main/packages/widget#readme)
   (a chat widget for any website).
-- **Changes:** [CHANGELOG.md](https://github.com/ligaxai/ligaxai-typescript/blob/main/CHANGELOG.md)
-  and the package changelog written at each release.
+- **Changes:**
+  [packages/sdk/CHANGELOG.md](https://github.com/ligaxai/ligaxai-typescript/blob/main/packages/sdk/CHANGELOG.md).
 - **Bugs and questions:** [GitHub issues](https://github.com/ligaxai/ligaxai-typescript/issues).
 
 ## License

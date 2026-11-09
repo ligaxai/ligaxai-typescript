@@ -124,7 +124,8 @@ export interface UseLigaXChatOptions<M extends UIMessage>
  * const { messages, sendMessage, status } = useLigaXChat({ useChat, api: '/api/chat' });
  * // or straight to the API with a client token from your createTokenRoute
  * const getToken = () => fetch('/api/ligax-token', { method: 'POST' }).then((r) => r.json());
- * useLigaXChat({ useChat, getToken, profileId: 'prf_…' }); // define getToken outside the component
+ * useLigaXChat({ useChat, getToken, profileId: 'prf_…', baseURL }); // getToken outside the component;
+ * // baseURL is your API root (`https://<your-ligax-host>/api/public/v1`): a browser has no LIGAX_BASE_URL
  * ```
  */
 export function useLigaXChat<M extends UIMessage = UIMessage>(

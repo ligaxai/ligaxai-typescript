@@ -136,13 +136,16 @@ describe('token provider', () => {
 describe('browser guard', () => {
   it('refuses a secret key in a browser, accepts client tokens, publishable keys and providers', () => {
     stubBrowser();
-    expect(() => new LigaX({ apiKey: 'lgx_sk_live_abc' })).toThrow(BrowserEnvironmentError);
-    expect(() => new LigaX({})).toThrow(BrowserEnvironmentError);
-    expect(() => new LigaX({ apiKey: 'lgx_ct_abc.def' })).not.toThrow();
-    expect(() => new LigaX({ apiKey: 'lgx_pk_live_abc' })).not.toThrow();
-    expect(() => new LigaX({ apiKey: () => 'lgx_ct_abc' })).not.toThrow();
+    const baseURL = 'https://api.example';
+    expect(() => new LigaX({ apiKey: 'lgx_sk_live_abc', baseURL })).toThrow(
+      BrowserEnvironmentError,
+    );
+    expect(() => new LigaX({ baseURL })).toThrow(BrowserEnvironmentError);
+    expect(() => new LigaX({ apiKey: 'lgx_ct_abc.def', baseURL })).not.toThrow();
+    expect(() => new LigaX({ apiKey: 'lgx_pk_live_abc', baseURL })).not.toThrow();
+    expect(() => new LigaX({ apiKey: () => 'lgx_ct_abc', baseURL })).not.toThrow();
     expect(
-      () => new LigaX({ apiKey: 'lgx_sk_live_abc', dangerouslyAllowBrowser: true }),
+      () => new LigaX({ apiKey: 'lgx_sk_live_abc', baseURL, dangerouslyAllowBrowser: true }),
     ).not.toThrow();
   });
 
@@ -239,6 +242,7 @@ describe('createTokenRoute', () => {
     const fetch = scriptedFetch([]);
     const { POST } = createTokenRoute({
       apiKey: 'lgx_sk_server',
+      baseURL: 'https://api.example',
       fetch,
       profileId: PROFILE,
       resolveEndUser: () => null,
@@ -364,6 +368,7 @@ describe('createLigaXTransport direct mode', () => {
     ]);
     let n = 0;
     const transport = createLigaXTransport({
+      baseURL: 'https://api.example',
       profileId: PROFILE,
       getToken: () => `lgx_ct_${++n}`,
       fetch,
@@ -379,6 +384,7 @@ describe('createLigaXTransport direct mode', () => {
   it('learns the profile from the token answer when no profileId is given', async () => {
     const fetch = scriptedFetch([laeResponse(simpleRun('ok'))]);
     const transport = createLigaXTransport({
+      baseURL: 'https://api.example',
       getToken: async () => ({ token: 'lgx_ct_x', expires_at: null, profile_id: PROFILE }),
       fetch,
     });
@@ -388,6 +394,7 @@ describe('createLigaXTransport direct mode', () => {
 
   it('fails clearly with no profile anywhere', async () => {
     const transport = createLigaXTransport({
+      baseURL: 'https://api.example',
       getToken: () => 'lgx_ct_x',
       fetch: scriptedFetch([]),
     });

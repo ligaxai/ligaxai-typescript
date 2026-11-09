@@ -15,7 +15,8 @@ Set these in the shell or a local dotenv file before `dev` (see `.env.example`; 
 
 - `LIGAX_API_KEY` — an `lgx_sk_…` key from Settings → Developers.
 - `LIGAX_PROFILE_ID` — the `prf_…` profile to run.
-- `LIGAX_BASE_URL` — only for a non-production platform, e.g. `https://<dev-host>/api/public/v1`.
+- `LIGAX_BASE_URL` — required: your platform's API root, e.g.
+  `https://<your-ligax-host>/api/public/v1`.
 - `LIGAX_DEMO_USER` — for a local try-out only: signs every visitor in as this one user. It is
   ignored in production builds.
 
@@ -36,8 +37,8 @@ Files:
   signed-in user (the key needs the `client_tokens:write` scope).
 - `app/direct/page.tsx` — **direct mode**: `useLigaXChat({ useChat, getToken })` streams the run
   straight from the API with that token. Add `http://localhost:3000` to the profile's allowed
-  origins first, or the API answers `403 origin_not_allowed`. For a non-production platform set
-  `NEXT_PUBLIC_LIGAX_BASE_URL` (the base URL is not a secret; the key still is).
+  origins first, or the API answers `403 origin_not_allowed`. Set `NEXT_PUBLIC_LIGAX_BASE_URL` to
+  the same API root (the base URL is not a secret; the key still is).
 - `app/chat-view.tsx` — the chat UI both pages share.
 
 This example is typechecked in CI (`pnpm typecheck`) but not built; `pnpm build` at the root only

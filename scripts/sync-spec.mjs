@@ -11,6 +11,10 @@
  *
  * Environment: GITHUB_TOKEN is sent when set (private repos / rate limits). Never required for
  * a public spec. Nothing here runs in tests; `--dry-run` prints the URLs and exits.
+ *
+ * The spec's `servers` entry is rewritten to the relative `/api/public/v1` on the way in. These
+ * packages ship no deployment host (the caller sets `baseURL` or LIGAX_BASE_URL), so a host named
+ * by the upstream spec must not reappear in the vendored copy on the next sync.
  */
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -52,7 +56,9 @@ const asset = (name) => {
 // openapi.json
 const openapi = await getBytes(asset('openapi.json').url);
 mkdirSync(resolve(ROOT, 'openapi'), { recursive: true });
-writeFileSync(resolve(ROOT, 'openapi/openapi.json'), openapi);
+const spec = JSON.parse(Buffer.from(openapi).toString('utf8'));
+spec.servers = [{ url: '/api/public/v1' }];
+writeFileSync(resolve(ROOT, 'openapi/openapi.json'), `${JSON.stringify(spec, null, 2)}\n`);
 console.log('  wrote openapi/openapi.json');
 
 // conformance fixtures: replace the directory wholesale so removed cases disappear too.

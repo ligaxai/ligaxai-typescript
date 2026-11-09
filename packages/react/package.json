@@ -1,7 +1,7 @@
 {
   "name": "@ligaxai/react",
   "version": "0.0.0",
-  "description": "React bindings for the LigaX AI SDK",
+  "description": "React hooks for LigaX AI agents with the Vercel AI SDK: useLigaXChat and useConnectAccount",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
@@ -11,10 +11,13 @@
   "homepage": "https://github.com/ligaxai/ligaxai-typescript#readme",
   "bugs": "https://github.com/ligaxai/ligaxai-typescript/issues",
   "keywords": [
-    "ligaxai-typescript",
+    "ligax",
+    "ligaxai",
+    "ai-agents",
     "react",
+    "hooks",
     "chat",
-    "hooks"
+    "ai-sdk"
   ],
   "type": "module",
   "sideEffects": false,

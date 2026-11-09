@@ -100,8 +100,8 @@ load. ESLint may be added per project with a decision entry.
 **Context:** The repo must be a runnable, CI-tested SDK _and_ a clone-and-rename template.
 
 **Decision:** Plain identifiers (`LigaX`, `@ligaxai`, `ligaxai-typescript`, `LigaX AI`, `ligaxai`,
-`https://enterprise.ligax.ai/api/public/v1`) replaced by a dependency-free Node script over
-`git ls-files`, longest tokens first, skipping the lockfile.
+and the default base URL, since removed — see 2026-11-09) replaced by a dependency-free Node script
+over `git ls-files`, longest tokens first, skipping the lockfile.
 
 **Reference:** `scripts/bootstrap.mjs`, `docs/TEMPLATE-TOKENS.md`
 
@@ -189,3 +189,28 @@ are offered only as Dismiss until the widget renders forms.
 
 **Reference:** `packages/widget/src/element.ts`, `packages/widget/src/markdown.ts`,
 `packages/widget/src/react.ts`
+
+## 2026-11-09 — No built-in base URL; the caller always names the platform
+
+**Context:** The client fell back to a hard-coded production API root when neither `baseURL` nor
+`LIGAX_BASE_URL` was set, and the READMEs, the widget docs, the example and the vendored spec named
+it. The packages are about to be published to npm, where every installed copy would carry the host.
+The company asked that no deployment URL — production or development — ship in the libraries until
+the platform has a secured, public way to advertise one.
+
+**Options:** (a) keep the default; (b) inject a default at build time; (c) no default: `baseURL` or
+`LIGAX_BASE_URL` is required, the way a development install already worked.
+
+**Decision:** (c). The constructor throws `MissingBaseURLError` (a `LigaXError`, like
+`MissingApiKeyError`) when neither is set; blank counts as unset. It is checked after the
+browser-credential guard, so a leaked secret key in a browser still reports that first. Browser
+entry points (direct mode, `LigaXProvider`, the widget) must pass `baseURL`, since a browser has no
+environment. The vendored spec's `servers` is the relative `/api/public/v1`, and `sync-spec.mjs`
+rewrites it on every sync. Docs use the placeholder `https://<your-ligax-host>`. A test in
+`packages/sdk/tests/no-deployment-hosts.test.ts` fails if a LigaX deployment or Cloud Run host
+appears anywhere in the repository. The Python SDK made the same decision the same day.
+
+**Consequences:** Breaking for callers that relied on the default (nothing is published yet).
+Re-adding a default later is a deliberate, reviewed change to this decision.
+
+**Reference:** `packages/sdk/src/client.ts`, `.changeset/no-builtin-base-url.md`

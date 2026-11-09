@@ -144,6 +144,12 @@ export class BrowserEnvironmentError extends LigaXError {}
 export class MissingApiKeyError extends LigaXError {}
 
 /**
+ * Raised by the constructor when no base URL is given and `LIGAX_BASE_URL` is unset or blank.
+ * The SDK ships no built-in host, so the caller always names the platform. No request is sent.
+ */
+export class MissingBaseURLError extends LigaXError {}
+
+/**
  * Raised by `files.create()` before anything is sent when the file is over the API's limit
  * (25 MB): uploading it would only spend the bandwidth to be refused with `413 file_too_large`.
  */

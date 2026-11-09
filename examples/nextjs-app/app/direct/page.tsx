@@ -25,7 +25,7 @@ export default function DirectPage() {
   const chat = useLigaXChat({
     useChat,
     getToken,
-    // The API base URL is not a secret; omit it for production.
+    // The API base URL is not a secret, and a browser has no LIGAX_BASE_URL: it must be set.
     baseURL: process.env.NEXT_PUBLIC_LIGAX_BASE_URL || undefined,
   });
   return <ChatView title="LigaX · direct mode (client token)" chat={chat} />;

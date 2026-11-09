@@ -31,6 +31,10 @@ updates:
     cooldown:
       default-days: 7
     groups:
+      # `ai` and `@ai-sdk/*` ship together: bumping one alone leaves two copies of `ai` whose
+      # ChatTransport types clash (seen 2026-11-05), so they always move in one pull request.
+      ai-sdk:
+        patterns: ['ai', '@ai-sdk/*']
       dev-dependencies:
         dependency-type: development
         update-types: [minor, patch]

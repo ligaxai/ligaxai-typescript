@@ -21,6 +21,11 @@ updates:
   - package-ecosystem: npm
     directory: /
     target-branch: dev
+    ignore:
+      # The packages support Node 22+. Types from a newer Node major would let code call APIs
+      # Node 22 lacks without a type error, so @types/node moves only with the supported minimum.
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
     schedule:
       interval: weekly
     cooldown:

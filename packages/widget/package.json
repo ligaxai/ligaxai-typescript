@@ -11,11 +11,12 @@
   "homepage": "https://github.com/ligaxai/ligaxai-typescript#readme",
   "bugs": "https://github.com/ligaxai/ligaxai-typescript/issues",
   "keywords": [
-    "ligaxai-typescript",
-    "widget",
-    "chat",
-    "embed",
-    "web-component"
+    "ligax",
+    "ligaxai",
+    "ai-agents",
+    "chat-widget",
+    "web-component",
+    "chat"
   ],
   "type": "module",
   "sideEffects": [

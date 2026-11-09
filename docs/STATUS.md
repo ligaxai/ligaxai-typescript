@@ -16,6 +16,11 @@ alongside every substantive change (see "Living docs" in [`CLAUDE.md`](../CLAUDE
 
 ## Team Activity
 
+- 2026-11-09 — READMEs rewritten as user guides and npm pages (researched against the OpenAI,
+  Anthropic, Stripe and Resend SDKs, Diátaxis and agent-readable docs guidance): required
+  configuration first, complete examples, an AI-assistant section, absolute links; `CONTRIBUTING.md`
+  holds the developer material; a README test guards the examples.
+
 - 2026-11-09 — no deployment host in the packages: `DEFAULT_BASE_URL` removed, `baseURL` /
   `LIGAX_BASE_URL` required (`MissingBaseURLError`), the widget needs `data-base-url`, the spec's
   `servers` is relative and `sync-spec` keeps it so, docs use `https://<your-ligax-host>`, and a

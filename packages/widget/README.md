@@ -1,8 +1,32 @@
 # @ligaxai/widget
 
-A chat assistant for any website, on the LigaX Agent API: a framework-free `<ligax-chat>` custom
-element in Shadow DOM. It streams answers, shows tool activity, asks for approval when the agent
-wants to act, keeps the conversation for the tab, and never holds a secret key.
+Add a chat assistant, powered by your LigaX agent, to any website.
+
+`@ligaxai/widget` is a `<ligax-chat>` element that works without a framework: one script tag, a
+JavaScript call, or a React component. It streams answers, shows tool activity, asks for approval
+before the agent acts, keeps the conversation for the browser tab, and never holds a secret key. Its
+styles are isolated (Shadow DOM), so your page's CSS cannot break it.
+
+## What you need
+
+| You need             | Looks like                                | Where to get it                                                                                                         |
+| -------------------- | ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| **API base URL**     | `https://<your-ligax-host>/api/public/v1` | Your LigaX administrator. It is the address of _your_ LigaX platform.                                                   |
+| **Agent profile ID** | `prf_…`                                   | LigaX → **Settings → Developers**.                                                                                      |
+| **One way in**       | a website key `lgx_pk_…`, or a token URL  | See [Choose who can chat](https://github.com/ligaxai/ligaxai-typescript/tree/main/packages/widget#choose-who-can-chat). |
+
+`<your-ligax-host>` is a placeholder for your platform's host. The widget has **no built-in
+address**: `data-base-url` (or `baseURL`) is required.
+
+## Choose who can chat
+
+| Visitors                   | Set                                          | They can                                               |
+| -------------------------- | -------------------------------------------- | ------------------------------------------------------ |
+| **Anyone** (not signed in) | `data-publishable-key` + `data-profile-id`   | Chat only.                                             |
+| **Your signed-in users**   | `data-token-url` (your server mints a token) | Chat, attach files, connect accounts, approve actions. |
+
+A website key (`lgx_pk_…`) is public by design: anyone can copy it from your page. A token URL is an
+endpoint on your server that checks the user's login and mints a short-lived client token.
 
 ## Script tag
 
@@ -75,6 +99,10 @@ both together. You can also self-host the file from `@ligaxai/widget/dist/`. The
   ```
 
 ## From a bundle, or React
+
+```sh
+npm install @ligaxai/widget
+```
 
 ```ts
 import { mount } from '@ligaxai/widget';
@@ -167,3 +195,24 @@ under `prefers-color-scheme: dark`.
 `dist/widget.global.js` (IIFE, everything inlined including the SDK client and the SSE parser):
 **about 54 KB minified, about 18 KB gzip** (≈ 16 KB brotli) at this release. The ESM build is a few
 KB on top of `@ligaxai/sdk`, which your bundler shares with the rest of your app.
+
+## For AI coding assistants
+
+1. The widget needs `data-base-url` (or `baseURL` / `base-url`): the API root
+   `https://<your-ligax-host>/api/public/v1`. There is no default. Never invent or hard-code a host.
+2. Never give the widget a secret key (`lgx_sk_…`). Use `data-publishable-key` (public, chat only)
+   or `data-token-url` (signed-in users; the server mints the token with `createTokenRoute` from
+   `@ligaxai/sdk/next`).
+3. With a publishable key, `data-profile-id` is required. Add the site's origin to the profile's
+   allowed origins (and the key's), or requests fail with `403 origin_not_allowed`.
+4. Pin the script to an exact version with its `integrity` hash.
+
+## More
+
+- The API client and server helpers:
+  [@ligaxai/sdk](https://github.com/ligaxai/ligaxai-typescript/tree/main/packages/sdk#readme).
+- Your own chat UI in React:
+  [@ligaxai/react](https://github.com/ligaxai/ligaxai-typescript/tree/main/packages/react#readme).
+- Bugs and questions: [GitHub issues](https://github.com/ligaxai/ligaxai-typescript/issues).
+- Security: [SECURITY.md](https://github.com/ligaxai/ligaxai-typescript/blob/main/SECURITY.md).
+- License: Apache-2.0.

@@ -1,8 +1,32 @@
 # @ligaxai/widget
 
-A chat assistant for any website, on the LigaX Agent API: a framework-free `<ligax-chat>` custom
-element in Shadow DOM. It streams answers, shows tool activity, asks for approval when the agent
-wants to act, keeps the conversation for the tab, and never holds a secret key.
+Add a chat assistant, powered by your LigaX agent, to any website.
+
+`@ligaxai/widget` is a `<ligax-chat>` element that works without a framework: one script tag, a
+JavaScript call, or a React component. It streams answers, shows tool activity, asks for approval
+before the agent acts, keeps the conversation for the browser tab, and never holds a secret key. Its
+styles are isolated (Shadow DOM), so your page's CSS cannot break it.
+
+## What you need
+
+| You need             | Looks like                                | Where to get it                                                                                                         |
+| -------------------- | ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| **API base URL**     | `https://<your-ligax-host>/api/public/v1` | Your LigaX administrator. It is the address of _your_ LigaX platform.                                                   |
+| **Agent profile ID** | `prf_…`                                   | LigaX → **Settings → Developers**.                                                                                      |
+| **One way in**       | a website key `lgx_pk_…`, or a token URL  | See [Choose who can chat](https://github.com/ligaxai/ligaxai-typescript/tree/main/packages/widget#choose-who-can-chat). |
+
+`<your-ligax-host>` is a placeholder for your platform's host. The widget has **no built-in
+address**: `data-base-url` (or `baseURL`) is required.
+
+## Choose who can chat
+
+| Visitors                   | Set                                          | They can                                               |
+| -------------------------- | -------------------------------------------- | ------------------------------------------------------ |
+| **Anyone** (not signed in) | `data-publishable-key` + `data-profile-id`   | Chat only.                                             |
+| **Your signed-in users**   | `data-token-url` (your server mints a token) | Chat, attach files, connect accounts, approve actions. |
+
+A website key (`lgx_pk_…`) is public by design: anyone can copy it from your page. A token URL is an
+endpoint on your server that checks the user's login and mints a short-lived client token.
 
 ## Script tag
 
@@ -14,6 +38,7 @@ wants to act, keeps the conversation for the tab, and never holds a secret key.
   crossorigin="anonymous"
   data-publishable-key="lgx_pk_live_…"
   data-profile-id="prf_…"
+  data-base-url="https://<your-ligax-host>/api/public/v1"
   async
 ></script>
 
@@ -23,6 +48,7 @@ wants to act, keeps the conversation for the tab, and never holds a secret key.
   integrity="sha384-…"
   crossorigin="anonymous"
   data-token-url="/api/ligax-token"
+  data-base-url="https://<your-ligax-host>/api/public/v1"
   async
 ></script>
 ```
@@ -39,7 +65,7 @@ both together. You can also self-host the file from `@ligaxai/widget/dist/`. The
 | `data-publishable-key` | `lgx_pk_…`. Opens an anonymous session per visitor (`POST /widget/sessions`).                                           |
 | `data-profile-id`      | `prf_…`. Required with a publishable key; optional with a token URL that answers `profile_id`.                          |
 | `data-token-url`       | Your endpoint answering `{ token, expires_at, profile_id }`; called with the page's cookies.                            |
-| `data-base-url`        | API base URL for a non-production platform. Default `https://enterprise.ligax.ai/api/public/v1`.                        |
+| `data-base-url`        | Your platform's API root, ending in `/api/public/v1`. Required: the widget has no built-in host.                        |
 | `data-title`           | Panel heading. Default "Chat".                                                                                          |
 | `data-greeting`        | A first message shown locally (not sent to the agent).                                                                  |
 | `data-placeholder`     | Composer placeholder.                                                                                                   |
@@ -74,21 +100,35 @@ both together. You can also self-host the file from `@ligaxai/widget/dist/`. The
 
 ## From a bundle, or React
 
+```sh
+npm install @ligaxai/widget
+```
+
 ```ts
 import { mount } from '@ligaxai/widget';
-const chat = mount({ publishableKey: 'lgx_pk_live_…', profileId: 'prf_…', title: 'Help' });
+const chat = mount({
+  publishableKey: 'lgx_pk_live_…',
+  profileId: 'prf_…',
+  baseURL: 'https://<your-ligax-host>/api/public/v1',
+  title: 'Help',
+});
 chat.show(); // also hide(), toggle(), send(text), reset()
 ```
 
 ```tsx
 import { LigaXChat } from '@ligaxai/widget/react';
-<LigaXChat tokenUrl="/api/ligax-token" title="Help" style={{ '--ligax-accent': '#7c3aed' }} />;
+<LigaXChat
+  tokenUrl="/api/ligax-token"
+  baseURL="https://<your-ligax-host>/api/public/v1"
+  title="Help"
+  style={{ '--ligax-accent': '#7c3aed' }}
+/>;
 ```
 
 `<LigaXChat>` renders the same custom element; `react` is an optional peer used only by that
 subpath. For a chat UI made of your own components, use `useLigaXChat` from `@ligaxai/react`. Or
 register the element and write it in markup: `define()`, then
-`<ligax-chat publishable-key="…" profile-id="…" chat-title="Help"></ligax-chat>`.
+`<ligax-chat publishable-key="…" profile-id="…" base-url="…" chat-title="Help"></ligax-chat>`.
 
 ## Behaviour
 
@@ -155,3 +195,24 @@ under `prefers-color-scheme: dark`.
 `dist/widget.global.js` (IIFE, everything inlined including the SDK client and the SSE parser):
 **about 54 KB minified, about 18 KB gzip** (≈ 16 KB brotli) at this release. The ESM build is a few
 KB on top of `@ligaxai/sdk`, which your bundler shares with the rest of your app.
+
+## For AI coding assistants
+
+1. The widget needs `data-base-url` (or `baseURL` / `base-url`): the API root
+   `https://<your-ligax-host>/api/public/v1`. There is no default. Never invent or hard-code a host.
+2. Never give the widget a secret key (`lgx_sk_…`). Use `data-publishable-key` (public, chat only)
+   or `data-token-url` (signed-in users; the server mints the token with `createTokenRoute` from
+   `@ligaxai/sdk/next`).
+3. With a publishable key, `data-profile-id` is required. Add the site's origin to the profile's
+   allowed origins (and the key's), or requests fail with `403 origin_not_allowed`.
+4. Pin the script to an exact version with its `integrity` hash.
+
+## More
+
+- The API client and server helpers:
+  [@ligaxai/sdk](https://github.com/ligaxai/ligaxai-typescript/tree/main/packages/sdk#readme).
+- Your own chat UI in React:
+  [@ligaxai/react](https://github.com/ligaxai/ligaxai-typescript/tree/main/packages/react#readme).
+- Bugs and questions: [GitHub issues](https://github.com/ligaxai/ligaxai-typescript/issues).
+- Security: [SECURITY.md](https://github.com/ligaxai/ligaxai-typescript/blob/main/SECURITY.md).
+- License: Apache-2.0.

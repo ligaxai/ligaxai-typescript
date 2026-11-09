@@ -142,7 +142,22 @@ describe('LigaXProvider', () => {
     });
   });
 
-  it('direct mode via hook options: getToken + profileId', () => {
+  it('direct mode via hook options: getToken + profileId + baseURL', () => {
+    const useChat = vi.fn((opts: { transport?: unknown }) => ({ opts }));
+    expect(() =>
+      renderHook(() =>
+        useLigaXChat({
+          useChat: useChat as never,
+          getToken: () => 'lgx_ct_x',
+          profileId: 'prf_AAAAAAAAAAAAAAAAAAAA',
+          baseURL: 'https://api.example/api/public/v1',
+        }),
+      ),
+    ).not.toThrow();
+    expect(useChat).toHaveBeenCalled();
+  });
+
+  it('direct mode without a baseURL fails clearly: there is no built-in host', () => {
     const useChat = vi.fn((opts: { transport?: unknown }) => ({ opts }));
     expect(() =>
       renderHook(() =>
@@ -152,7 +167,6 @@ describe('LigaXProvider', () => {
           profileId: 'prf_AAAAAAAAAAAAAAAAAAAA',
         }),
       ),
-    ).not.toThrow();
-    expect(useChat).toHaveBeenCalled();
+    ).toThrow(/LIGAX_BASE_URL/);
   });
 });

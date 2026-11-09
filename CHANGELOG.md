@@ -9,6 +9,12 @@ Repository-level changes (tooling, docs, CI). Package changelogs are written by 
 
 ### Changed
 
+- **Docs: each package README is the user guide and npm page.** The full guide moved from the
+  repository README into `packages/sdk/README.md`; `@ligaxai/react` and `@ligaxai/widget` have
+  complete pages of their own; the repository README is a short page for choosing a package.
+  Developer material moved to `CONTRIBUTING.md`. `packages/sdk/tests/readme.test.ts` checks that
+  the examples parse, import only real exports, and that package READMEs use absolute links.
+
 - CI runs on pushes to `main` and `dev` and ends in one `ci-gate` job for branch protection.
   Pull requests from logins outside `.github/CONTRIBUTORS` are closed; issues stay open.
 

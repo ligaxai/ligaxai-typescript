@@ -1,4 +1,4 @@
-export { LigaX, DEFAULT_BASE_URL, DEFAULT_MAX_RETRIES, DEFAULT_TIMEOUT_MS } from './client.js';
+export { LigaX, DEFAULT_MAX_RETRIES, DEFAULT_TIMEOUT_MS } from './client.js';
 export type { ClientOptions } from './client.js';
 export { LigaX as default } from './client.js';
 

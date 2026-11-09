@@ -52,6 +52,37 @@ function published(name, version) {
   }
 }
 
+/** The version a dist-tag points at now, or null (unpublished, or no such tag). */
+function distTag(name, tag) {
+  try {
+    const tags = JSON.parse(
+      execFileSync(npm, ['view', name, 'dist-tags', '--json'], {
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'ignore'],
+      }),
+    );
+    return tags[tag] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Order `X.Y.Z` / `X.Y.Z-dev.N` versions — the only two shapes this repo publishes. A dev build
+ * sorts below the release it previews, as in semver.
+ */
+function compareVersions(a, b) {
+  const parse = (v) => {
+    const [main, pre] = String(v).split('-');
+    const nums = main.split('.').map((n) => Number.parseInt(n, 10) || 0);
+    const dev = pre ? Number.parseInt(pre.replace(/^dev\./, ''), 10) || 0 : Infinity;
+    return [...nums, dev];
+  };
+  const [x, y] = [parse(a), parse(b)];
+  for (let i = 0; i < x.length; i++) if (x[i] !== y[i]) return x[i] < y[i] ? -1 : 1;
+  return 0;
+}
+
 /** Public workspace packages, `sdk` first. */
 function packages() {
   const dirs = readdirSync(join(ROOT, 'packages')).sort((a, b) =>
@@ -105,6 +136,14 @@ function publish(dir, tag) {
     if (published(name, version)) {
       console.log(`${name}@${version} already published — skipped`);
       continue;
+    }
+    // A dist-tag must only move forward: publishing an older build under `dev` (or `latest`)
+    // would hand every `@dev` install a downgrade. Refuse rather than publish.
+    const current = distTag(name, tag);
+    if (current && compareVersions(version, current) <= 0) {
+      throw new Error(
+        `${name}@${version} is not newer than the current "${tag}" (${current}); refusing to publish`,
+      );
     }
     console.log(`publishing ${name}@${version} (${tag})`);
     execFileSync(npm, ['publish', join(src, file), '--access', 'public', '--tag', tag], {

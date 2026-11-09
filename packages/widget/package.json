@@ -1,6 +1,6 @@
 {
   "name": "@ligaxai/widget",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Drop-in chat assistant for any website: one script tag, a <ligax-chat> custom element, or a React component",
   "license": "Apache-2.0",
   "repository": {
@@ -11,11 +11,12 @@
   "homepage": "https://github.com/ligaxai/ligaxai-typescript#readme",
   "bugs": "https://github.com/ligaxai/ligaxai-typescript/issues",
   "keywords": [
-    "ligaxai-typescript",
-    "widget",
-    "chat",
-    "embed",
-    "web-component"
+    "ligax",
+    "ligaxai",
+    "ai-agents",
+    "chat-widget",
+    "web-component",
+    "chat"
   ],
   "type": "module",
   "sideEffects": [

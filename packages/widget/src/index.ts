@@ -34,7 +34,7 @@ export interface WidgetOptions {
   profileId?: string | undefined;
   /** Your endpoint that answers `{ token, expires_at, profile_id }` for the signed-in user. */
   tokenUrl?: string | undefined;
-  /** The API base URL. Default `https://enterprise.ligax.ai/api/public/v1`. */
+  /** The API base URL, ending in `/api/public/v1`. Required: there is no built-in host. */
   baseURL?: string | undefined;
   /** Panel heading. Default "Chat". */
   title?: string | undefined;

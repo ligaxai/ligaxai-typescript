@@ -5,7 +5,7 @@ On the **template branch** this repo is `base-project-slug` / `__PROJECT_TITLE__
 
 ```sh
 node scripts/bootstrap.mjs <slug> <scope-without-@> <ClassPrefix> "<Title>" <org> <base-url> [ENV_PREFIX]
-node scripts/bootstrap.mjs ligaxai-typescript ligaxai LigaX "LigaX" ligaxai https://api.ligax.ai/v1
+node scripts/bootstrap.mjs ligaxai-typescript ligaxai LigaX "LigaX" ligaxai https://api.example.com/v1
 pnpm install     # refresh pnpm-lock.yaml for the renamed packages
 pnpm check
 ```
@@ -24,7 +24,7 @@ and prints a per-token count.
 | `BASE_PROJECT_`        | derived: SCREAMING_SNAKE of prefix | env vars `BASE_PROJECT_API_KEY`, `BASE_PROJECT_BASE_URL`, `BASE_PROJECT_LOG` (derived automatically; not an argument)                                  |
 | `__PROJECT_TITLE__`    | human title                        | README heading, package descriptions, LICENSE appendix, widget aria-label, Next example metadata                                                       |
 | `__GITHUB_ORG__`       | GitHub org or user                 | repository URLs, CI badge, changeset changelog repo, `sync-spec` default                                                                               |
-| `__DEFAULT_BASE_URL__` | production API base URL            | `DEFAULT_BASE_URL` in `packages/sdk/src/client.ts`, README options table                                                                               |
+| `__DEFAULT_BASE_URL__` | production API base URL            | `DEFAULT_BASE_URL` in `packages/sdk/src/client.ts` (removed in `@ligaxai`: DECISIONS 2026-11-09)                                                       |
 
 ## Not tokens (edit by hand after bootstrap)
 

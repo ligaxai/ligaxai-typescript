@@ -107,7 +107,7 @@
     }
   },
   "devDependencies": {
-    "ai": "7.0.148",
+    "ai": "7.0.159",
     "zod": "4.6.7"
   },
   "publishConfig": {

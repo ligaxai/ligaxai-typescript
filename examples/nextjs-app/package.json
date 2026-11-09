@@ -14,7 +14,7 @@
     "@ligaxai/react": "workspace:*",
     "@ligaxai/sdk": "workspace:*",
     "ai": "7.0.148",
-    "next": "16.4.2",
+    "next": "16.4.4",
     "react": "19.3.1",
     "react-dom": "19.3.1"
   },

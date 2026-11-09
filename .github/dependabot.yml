@@ -1,10 +1,14 @@
 # Workflow actions are pinned to commit SHAs (a release job holds publish rights through OIDC, so a
 # moved tag must not change what runs). Dependabot proposes the SHA bumps, and npm updates, after a
 # week's cool-down so a freshly hijacked release is likely caught before it reaches us.
+# Updates target `dev`, like every change: they reach `main` only through the dev → main
+# release, so the two branches never diverge (a squash-merged update on `main` did that once).
+# Dependabot reads this file from the default branch, so the setting applies once it is on `main`.
 version: 2
 updates:
   - package-ecosystem: github-actions
     directory: /
+    target-branch: dev
     schedule:
       interval: weekly
     cooldown:
@@ -16,11 +20,21 @@ updates:
         update-types: ['version-update:semver-major']
   - package-ecosystem: npm
     directory: /
+    target-branch: dev
+    ignore:
+      # The packages support Node 22+. Types from a newer Node major would let code call APIs
+      # Node 22 lacks without a type error, so @types/node moves only with the supported minimum.
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
     schedule:
       interval: weekly
     cooldown:
       default-days: 7
     groups:
+      # `ai` and `@ai-sdk/*` ship together: bumping one alone leaves two copies of `ai` whose
+      # ChatTransport types clash (seen 2026-11-05), so they always move in one pull request.
+      ai-sdk:
+        patterns: ['ai', '@ai-sdk/*']
       dev-dependencies:
         dependency-type: development
         update-types: [minor, patch]

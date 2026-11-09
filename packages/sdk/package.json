@@ -1,6 +1,6 @@
 {
   "name": "@ligaxai/sdk",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Official TypeScript client for the LigaX Agent API: run your LigaX AI agents from Node, Bun, Deno, Workers and browsers",
   "license": "Apache-2.0",
   "repository": {

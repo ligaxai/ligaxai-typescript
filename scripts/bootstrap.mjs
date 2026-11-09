@@ -3,7 +3,7 @@
  * Rename the template into a real project.
  *
  *   node scripts/bootstrap.mjs <slug> <scope-without-@> <ClassPrefix> "<Title>" <org> <base-url> [ENV_PREFIX]
- *   node scripts/bootstrap.mjs ligaxai-typescript ligaxai LigaX "LigaX" ligaxai https://api.ligax.ai/v1
+ *   node scripts/bootstrap.mjs ligaxai-typescript ligaxai LigaX "LigaX" ligaxai https://api.example.com/v1
  *
  * ENV_PREFIX defaults to the class prefix upper-cased (`LigaX` -> `LIGAX_API_KEY`); pass it when
  * the prefix has inner capitals you want split (`MyCo` -> `MY_CO`).

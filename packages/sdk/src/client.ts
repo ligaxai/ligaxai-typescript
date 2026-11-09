@@ -1,5 +1,5 @@
 import { BaseClient, type ApiKeyProvider, type Fetch } from './core/base-client.js';
-import { BrowserEnvironmentError, MissingApiKeyError } from './core/errors.js';
+import { BrowserEnvironmentError, MissingApiKeyError, MissingBaseURLError } from './core/errors.js';
 import { createLogger, type Logger, type LogLevel, parseLogLevel } from './core/logging.js';
 import { isBrowserCredential } from './lib/token-provider.js';
 import { ClientTokens } from './resources/client-tokens.js';
@@ -13,7 +13,10 @@ import { Runs } from './resources/runs.js';
 import { Usage } from './resources/usage.js';
 import { Webhooks } from './resources/webhooks.js';
 
-export const DEFAULT_BASE_URL = 'https://enterprise.ligax.ai/api/public/v1';
+// There is deliberately no built-in base URL. The packages are published to npm, so a hard-coded
+// host would be advertised by every installed copy, and a client that silently falls back to one
+// sends the key somewhere the caller never chose. The caller names the platform (`baseURL` or
+// LIGAX_BASE_URL), the same way for every environment.
 export const DEFAULT_TIMEOUT_MS = 600_000;
 export const DEFAULT_MAX_RETRIES = 2;
 
@@ -24,7 +27,10 @@ export interface ClientOptions {
    * again once when the API answers `401 token_expired` (see `cachedTokenProvider`).
    */
   apiKey?: string | ApiKeyProvider | undefined;
-  /** Defaults to `process.env.LIGAX_BASE_URL`, then the production API. */
+  /**
+   * The API root, ending in `/api/public/v1`. Defaults to `process.env.LIGAX_BASE_URL`; required —
+   * there is no built-in host, and a browser has no environment to read it from.
+   */
   baseURL?: string | undefined;
   /** Per-request timeout in ms. Default 10 minutes, matching long-running streamed calls. */
   timeout?: number | undefined;
@@ -104,7 +110,6 @@ export class LigaX extends BaseClient {
 
   constructor(options: ClientOptions = {}) {
     const given = options.apiKey ?? readEnv('LIGAX_API_KEY');
-    const baseURL = checkBaseURL(options.baseURL ?? readEnv('LIGAX_BASE_URL') ?? DEFAULT_BASE_URL);
     const guarded = isBrowserLike() && options.dangerouslyAllowBrowser !== true;
 
     if (guarded && typeof given !== 'function' && !(given && isBrowserCredential(given))) {
@@ -123,6 +128,13 @@ export class LigaX extends BaseClient {
         );
       }
     }
+    const rawBaseURL = options.baseURL?.trim() || readEnv('LIGAX_BASE_URL');
+    if (!rawBaseURL) {
+      throw new MissingBaseURLError(
+        'No base URL: pass `baseURL` or set LIGAX_BASE_URL to your LigaX API root (it ends in /api/public/v1).',
+      );
+    }
+    const baseURL = checkBaseURL(rawBaseURL);
     // A provider is only known by what it returns; hold each answer to the same rule.
     const apiKey: string | ApiKeyProvider | undefined =
       guarded && typeof given === 'function'

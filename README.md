@@ -16,13 +16,17 @@ from your own software. Node 22+, ESM and CJS, works in Bun, Deno and workerd.
 ```sh
 pnpm add @ligaxai/sdk
 export LIGAX_API_KEY=lgx_sk_...        # Settings → Developers. Server-side only.
-# export LIGAX_BASE_URL=https://<dev-host>/api/public/v1   # only for a non-production platform
+export LIGAX_BASE_URL=https://<your-ligax-host>/api/public/v1   # required: your platform's API root
 ```
+
+The SDK has no built-in host: every environment, production included, is chosen by `baseURL` or
+`LIGAX_BASE_URL` (a browser has no environment, so pass `baseURL` there). Without one the
+constructor throws `MissingBaseURLError` before sending anything.
 
 ```ts
 import { LigaX } from '@ligaxai/sdk';
 
-const client = new LigaX(); // reads LIGAX_API_KEY (and LIGAX_BASE_URL)
+const client = new LigaX(); // reads LIGAX_API_KEY and LIGAX_BASE_URL
 const run = await client.runs.wait({ profile_id: 'prf_…', input: 'Summarise yesterday’s tickets' });
 console.log(run.status, run.output.text);
 ```
@@ -408,12 +412,12 @@ limits, webhooks and audit trail.
 
 ```bash
 claude mcp add --transport http ligax-support \
-  https://enterprise.ligax.ai/api/public/v1/mcp/prf_… \
+  https://<your-ligax-host>/api/public/v1/mcp/prf_… \
   --header "Authorization: Bearer $LIGAX_API_KEY"
 ```
 
 The MCP server offers `ask`, `get_run` and `respond`. For A2A, the agent card is at
-`https://enterprise.ligax.ai/api/public/v1/a2a/prf_…/.well-known/agent-card.json` (send the same
+`https://<your-ligax-host>/api/public/v1/a2a/prf_…/.well-known/agent-card.json` (send the same
 `Authorization` header) and the JSON-RPC endpoint is `…/a2a/prf_…` (A2A 1.0 and 0.3). Add
 `X-LigaX-End-User: <your user id>` to act for one of your users. The platform's
 `docs/public-api/mcp-and-a2a.md` guide covers client configuration, the tool and task mappings, and
@@ -449,7 +453,7 @@ tickets) and spends your credit. The rules that matter:
 | Option / env                        | Default                                                                                               |
 | ----------------------------------- | ----------------------------------------------------------------------------------------------------- |
 | `apiKey` / `LIGAX_API_KEY`          | — (a string, or a token provider `({ refresh }) => string` for client tokens)                         |
-| `baseURL` / `LIGAX_BASE_URL`        | `https://enterprise.ligax.ai/api/public/v1`                                                           |
+| `baseURL` / `LIGAX_BASE_URL`        | — (required; no built-in host)                                                                        |
 | `timeout`                           | `600000` ms                                                                                           |
 | `maxRetries`                        | `2` — connection errors, 408/409/429/5xx; never 402/403/422; honours `retry-after-ms` / `retry-after` |
 | `defaultHeaders`, `fetch`, `logger` | —                                                                                                     |
@@ -496,6 +500,5 @@ Apache-2.0 — see [LICENSE](LICENSE).
 | dev     | every push to `dev`          | `0.1.0-dev.42`, dist-tag `dev` | `pnpm add @ligaxai/sdk@dev` (or an exact pin) |
 | stable  | Changesets release on `main` | `0.1.0`, dist-tag `latest`     | `pnpm add @ligaxai/sdk`                       |
 
-`@ligaxai/sdk@latest` never resolves a `-dev.` build. Point a dev install at the development
-platform with `LIGAX_BASE_URL=https://<dev-host>/api/public/v1`; the built-in default is the
-production host.
+`@ligaxai/sdk@latest` never resolves a `-dev.` build. Neither channel has a built-in host: point any
+install at its platform with `LIGAX_BASE_URL` (or `baseURL`).

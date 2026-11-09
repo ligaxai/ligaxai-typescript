@@ -4,7 +4,7 @@ import { currentUser } from '../../../lib/session';
 
 /**
  * The only server code that runs agents, and the only place the secret key is used: the SDK reads
- * `LIGAX_API_KEY` (and `LIGAX_BASE_URL` for a non-production platform) from the server environment.
+ * `LIGAX_API_KEY` and `LIGAX_BASE_URL` from the server environment.
  * Never expose either to the browser — no `NEXT_PUBLIC_` prefix.
  *
  * The profile is pinned here, not chosen by the browser, and every run is for the signed-in user

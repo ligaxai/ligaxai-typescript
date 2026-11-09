@@ -12,8 +12,14 @@ alongside every substantive change (see "Living docs" in [`CLAUDE.md`](../CLAUDE
 | SDK-0   | Project base setup — TypeScript SDK monorepo template (`ligax-enterprise` PLAN-2026-10-22-sdk-repos) | 🔴 L | 2026-10-22 | @sadain | implemented | —      |
 | SDK-1   | First spec tag → `SPEC_VERSION`, generated types, real resources                                     | 🟡 M | 2026-10-22 | @sadain | implemented | —      |
 | SDK-8   | First publish (manual) + trusted publishing                                                          | 🟢 S | —          | —       | planned     | —      |
+| SDK-9   | No built-in base URL (`baseURL` / `LIGAX_BASE_URL` required)                                         | 🟢 S | 2026-11-09 | @sadain | implemented | —      |
 
 ## Team Activity
+
+- 2026-11-09 — no deployment host in the packages: `DEFAULT_BASE_URL` removed, `baseURL` /
+  `LIGAX_BASE_URL` required (`MissingBaseURLError`), the widget needs `data-base-url`, the spec's
+  `servers` is relative and `sync-spec` keeps it so, docs use `https://<your-ligax-host>`, and a
+  test guards against a host reappearing (DECISIONS 2026-11-09).
 
 - 2026-10-24 — CI gate (`ci-gate`) on `main` and `dev`, and an allow-list that closes pull requests
   from other logins. GitHub rulesets for `main`/`dev` are repository settings.

@@ -141,7 +141,7 @@ export interface LigaXTransportOptions {
    * is called once and reused until shortly before `expires_at`, and again on `401 token_expired`.
    */
   getToken?: TokenFetcher | undefined;
-  /** Direct mode: the API base URL. Default `https://enterprise.ligax.ai/api/public/v1`. */
+  /** Direct mode: the API base URL (required in a browser; there is no built-in host). */
   baseURL?: string | undefined;
   /**
    * Direct mode: the `prf_…` profile the token was minted for. Optional when `getToken` answers

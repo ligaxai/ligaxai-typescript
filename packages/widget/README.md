@@ -14,6 +14,7 @@ wants to act, keeps the conversation for the tab, and never holds a secret key.
   crossorigin="anonymous"
   data-publishable-key="lgx_pk_live_…"
   data-profile-id="prf_…"
+  data-base-url="https://<your-ligax-host>/api/public/v1"
   async
 ></script>
 
@@ -23,6 +24,7 @@ wants to act, keeps the conversation for the tab, and never holds a secret key.
   integrity="sha384-…"
   crossorigin="anonymous"
   data-token-url="/api/ligax-token"
+  data-base-url="https://<your-ligax-host>/api/public/v1"
   async
 ></script>
 ```
@@ -39,7 +41,7 @@ both together. You can also self-host the file from `@ligaxai/widget/dist/`. The
 | `data-publishable-key` | `lgx_pk_…`. Opens an anonymous session per visitor (`POST /widget/sessions`).                                           |
 | `data-profile-id`      | `prf_…`. Required with a publishable key; optional with a token URL that answers `profile_id`.                          |
 | `data-token-url`       | Your endpoint answering `{ token, expires_at, profile_id }`; called with the page's cookies.                            |
-| `data-base-url`        | API base URL for a non-production platform. Default `https://enterprise.ligax.ai/api/public/v1`.                        |
+| `data-base-url`        | Your platform's API root, ending in `/api/public/v1`. Required: the widget has no built-in host.                        |
 | `data-title`           | Panel heading. Default "Chat".                                                                                          |
 | `data-greeting`        | A first message shown locally (not sent to the agent).                                                                  |
 | `data-placeholder`     | Composer placeholder.                                                                                                   |
@@ -76,19 +78,29 @@ both together. You can also self-host the file from `@ligaxai/widget/dist/`. The
 
 ```ts
 import { mount } from '@ligaxai/widget';
-const chat = mount({ publishableKey: 'lgx_pk_live_…', profileId: 'prf_…', title: 'Help' });
+const chat = mount({
+  publishableKey: 'lgx_pk_live_…',
+  profileId: 'prf_…',
+  baseURL: 'https://<your-ligax-host>/api/public/v1',
+  title: 'Help',
+});
 chat.show(); // also hide(), toggle(), send(text), reset()
 ```
 
 ```tsx
 import { LigaXChat } from '@ligaxai/widget/react';
-<LigaXChat tokenUrl="/api/ligax-token" title="Help" style={{ '--ligax-accent': '#7c3aed' }} />;
+<LigaXChat
+  tokenUrl="/api/ligax-token"
+  baseURL="https://<your-ligax-host>/api/public/v1"
+  title="Help"
+  style={{ '--ligax-accent': '#7c3aed' }}
+/>;
 ```
 
 `<LigaXChat>` renders the same custom element; `react` is an optional peer used only by that
 subpath. For a chat UI made of your own components, use `useLigaXChat` from `@ligaxai/react`. Or
 register the element and write it in markup: `define()`, then
-`<ligax-chat publishable-key="…" profile-id="…" chat-title="Help"></ligax-chat>`.
+`<ligax-chat publishable-key="…" profile-id="…" base-url="…" chat-title="Help"></ligax-chat>`.
 
 ## Behaviour
 

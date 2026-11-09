@@ -12,7 +12,7 @@ export interface LigaXContextValue {
   api: string;
   /**
    * The API base URL. Set together with `getClientToken` to switch the chat hooks to direct mode
-   * (e.g. `https://enterprise.ligax.ai/api/public/v1`).
+   * (e.g. `https://<your-ligax-host>/api/public/v1`).
    */
   baseURL?: string | undefined;
   /**

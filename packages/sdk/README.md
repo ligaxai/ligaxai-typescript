@@ -6,12 +6,13 @@ from your own software. Node 22+, ESM and CJS; works in Bun, Deno and workerd.
 ```sh
 npm i @ligaxai/sdk
 export LIGAX_API_KEY=lgx_sk_...   # Settings → Developers. Server-side only.
+export LIGAX_BASE_URL=https://<your-ligax-host>/api/public/v1   # required; there is no built-in host
 ```
 
 ```ts
 import { LigaX } from '@ligaxai/sdk';
 
-const client = new LigaX(); // reads LIGAX_API_KEY
+const client = new LigaX(); // reads LIGAX_API_KEY and LIGAX_BASE_URL
 const run = await client.runs.wait({ profile_id: 'prf_…', input: 'Summarise yesterday’s tickets' });
 console.log(run.status, run.output.text);
 

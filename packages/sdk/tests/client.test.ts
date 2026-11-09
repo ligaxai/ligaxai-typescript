@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { LigaX, DEFAULT_BASE_URL } from '../src/index.js';
+import * as sdk from '../src/index.js';
+import { LigaX, MissingBaseURLError } from '../src/index.js';
 import { BrowserEnvironmentError, MissingApiKeyError } from '../src/core/errors.js';
 import { json, scriptedFetch } from './helpers.js';
 
@@ -24,11 +25,24 @@ describe('LigaX client options', () => {
     expect(client.baseURL).toBe('https://env.example/v1');
   });
 
-  it('prefers explicit arguments over the environment, and falls back to the default URL', () => {
+  it('prefers explicit arguments over the environment', () => {
     process.env.LIGAX_API_KEY = 'sk_env';
-    const client = new LigaX({ apiKey: 'sk_arg' });
+    process.env.LIGAX_BASE_URL = 'https://env.example/v1';
+    const client = new LigaX({ apiKey: 'sk_arg', baseURL: 'https://arg.example/v1' });
     expect(client.apiKey).toBe('sk_arg');
-    expect(client.baseURL).toBe(DEFAULT_BASE_URL);
+    expect(client.baseURL).toBe('https://arg.example/v1');
+  });
+
+  it('ships no built-in base URL', () => {
+    expect('DEFAULT_BASE_URL' in sdk).toBe(false);
+  });
+
+  it('throws MissingBaseURLError when no base URL is given or set', () => {
+    expect(() => new LigaX({ apiKey: 'sk_arg' })).toThrow(MissingBaseURLError);
+    expect(() => new LigaX({ apiKey: 'sk_arg' })).toThrow(/LIGAX_BASE_URL/);
+    process.env.LIGAX_BASE_URL = '   ';
+    expect(() => new LigaX({ apiKey: 'sk_arg' })).toThrow(MissingBaseURLError);
+    expect(() => new LigaX({ apiKey: 'sk_arg', baseURL: '  ' })).toThrow(MissingBaseURLError);
   });
 
   it('sends Authorization, User-Agent, Accept and default headers', async () => {
@@ -136,8 +150,9 @@ describe('LigaX client options', () => {
     vi.stubGlobal('window', {});
     vi.stubGlobal('document', {});
     vi.stubGlobal('navigator', {});
-    expect(() => new LigaX({ apiKey: 'k' })).toThrow(BrowserEnvironmentError);
-    expect(() => new LigaX({ apiKey: 'k', dangerouslyAllowBrowser: true })).not.toThrow();
+    const baseURL = 'https://api.example';
+    expect(() => new LigaX({ apiKey: 'k', baseURL })).toThrow(BrowserEnvironmentError);
+    expect(() => new LigaX({ apiKey: 'k', baseURL, dangerouslyAllowBrowser: true })).not.toThrow();
   });
 
   it('routes logs through the injected logger and redacts Authorization', async () => {

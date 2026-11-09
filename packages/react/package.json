@@ -1,6 +1,6 @@
 {
   "name": "@ligaxai/react",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "React hooks for LigaX AI agents with the Vercel AI SDK: useLigaXChat and useConnectAccount",
   "license": "Apache-2.0",
   "repository": {
@@ -67,13 +67,13 @@
     }
   },
   "devDependencies": {
-    "@ai-sdk/react": "4.0.152",
+    "@ai-sdk/react": "4.0.163",
     "@testing-library/dom": "10.4.2",
     "@testing-library/react": "16.3.3",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
-    "ai": "7.0.148",
-    "jsdom": "29.1.1",
+    "ai": "7.0.159",
+    "jsdom": "30.1.3",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "zod": "4.6.7"

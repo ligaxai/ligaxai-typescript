@@ -52,8 +52,22 @@ requires.
 
 `.github/workflows/release.yml` publishes through npm trusted publishing with provenance; no npm
 token is stored. Two repository variables switch the channels: `PUBLISH_DEV_ENABLED` and
-`PUBLISH_MAIN_ENABLED` (exactly `true` to publish). On `main`, Changesets opens a "Version packages"
-pull request; merging it publishes under `latest`.
+`PUBLISH_MAIN_ENABLED` (exactly `true` to publish).
+
+A stable release works like the Python SDK's:
+
+1. Open the `dev` → `main` release pull request. In it, run
+   `GITHUB_TOKEN=$(gh auth token) pnpm version` (`changeset version`): it bumps the packages and
+   writes their changelogs from the pending changesets. Commit the result. Doing this in the release
+   pull request, not through the Changesets bot, matters: a pull request the bot opens with the
+   workflow token never runs CI, so the required `ci-gate` check could never pass on it.
+2. Merge it with **Create a merge commit** (never squash).
+3. The Release workflow builds and waits in the `npm` environment: open the run and click **Review
+   deployments → npm → Approve and deploy**.
+4. It publishes under `latest` and tags each package (`@ligaxai/sdk@X.Y.Z`).
+
+A merge to `main` with no new version still pauses in the `npm` environment; approving it publishes
+nothing, because versions already on npm are skipped. Reject it instead.
 
 ## Using this repository as a template
 

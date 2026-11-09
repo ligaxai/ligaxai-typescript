@@ -1,5 +1,12 @@
 # @ligaxai/react
 
+## 0.1.1
+
+### Patch Changes
+
+- Updated dependencies [[`9787a5b`](https://github.com/ligaxai/ligaxai-typescript/commit/9787a5b59c518e1bbad517da7a365a7f761cadf2)]:
+  - @ligaxai/sdk@0.1.1
+
 ## 0.1.0
 
 ### Minor Changes

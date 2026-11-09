@@ -1,5 +1,11 @@
 # @ligaxai/sdk
 
+## 0.1.1
+
+### Patch Changes
+
+- [#36](https://github.com/ligaxai/ligaxai-typescript/pull/36) [`9787a5b`](https://github.com/ligaxai/ligaxai-typescript/commit/9787a5b59c518e1bbad517da7a365a7f761cadf2) Thanks [@ligaments-sadain](https://github.com/ligaments-sadain)! - Depends on `eventsource-parser` 4.1.3 (was 4.1.2), the parser behind every streamed run.
+
 ## 0.1.0
 
 ### Minor Changes

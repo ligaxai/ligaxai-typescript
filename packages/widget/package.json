@@ -1,6 +1,6 @@
 {
   "name": "@ligaxai/widget",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Drop-in chat assistant for any website: one script tag, a <ligax-chat> custom element, or a React component",
   "license": "Apache-2.0",
   "repository": {

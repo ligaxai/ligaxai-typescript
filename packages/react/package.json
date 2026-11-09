@@ -1,6 +1,6 @@
 {
   "name": "@ligaxai/react",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "React hooks for LigaX AI agents with the Vercel AI SDK: useLigaXChat and useConnectAccount",
   "license": "Apache-2.0",
   "repository": {
